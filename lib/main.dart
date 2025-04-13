@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:logistics_app/screens/language.dart';
 import 'package:logistics_app/screens/login.dart';
 import 'package:logistics_app/screens/role.dart';
+import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
 import 'package:logistics_app/splash/splashscreen.dart';
 import 'package:logistics_app/widgets/themes.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -52,7 +53,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _loadLocale() async {
     final prefs = await SharedPreferences.getInstance();
-    String? code = prefs.getString('languageCode') ?? 'en';
+    String? code = prefs.getString('languageCode') ?? 'ur';
     setState(() {
       _locale = Locale(code);
     });
@@ -77,7 +78,7 @@ class _MyAppState extends State<MyApp> {
         Locale('ur'),
         Locale('ps'),
       ],
-      home: const login(),
+      home: const CustomerDashboard(),
     );
   }
 }

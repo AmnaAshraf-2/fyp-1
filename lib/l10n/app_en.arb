@@ -6,6 +6,13 @@
   "chooseRole": "Choose your role",
   "customer": "Customer",
   "driver": "Driver",
-  "enterprise": "Enterprise"
+  "enterprise": "Enterprise",
+  "dashboardTitle": "Customer Dashboard",
+  "newBookings": "New Bookings",
+  "liveTrip": "Live Trip",
+  "upcomingBookings": "Upcoming Bookings",
+  "pastBookings": "Past Bookings"
+
+
 }
 

@@ -95,6 +95,7 @@ class _loginState extends State<login> {
                                   inputFormatters: [
                                     LengthLimitingTextInputFormatter(100)
                                   ],
+                                  textDirection: TextDirection.ltr,
                                   decoration: InputDecoration(
                                     hintText: 'Email',
                                     hintStyle: TextStyle(
@@ -147,6 +148,7 @@ class _loginState extends State<login> {
                                         CrossAxisAlignment.center,
                                     children: [
                                       TextFormField(
+                                        textDirection: TextDirection.ltr,
                                         obscureText: !_passwordVisible,
                                         inputFormatters: [
                                           LengthLimitingTextInputFormatter(50)
@@ -224,6 +226,7 @@ class _loginState extends State<login> {
                                           },
                                           child: Text(
                                             "Forgot Password?",
+                                            textDirection: TextDirection.ltr,
                                             style: TextStyle(
                                               color: Colors.blue,
                                               decoration:
@@ -266,7 +269,7 @@ class _loginState extends State<login> {
                                                     .white, // Color of the progress indicator
                                               )
                                             : Text(
-                                                'LoginS',
+                                                'Login',
                                                 style: TextStyle(
                                                   fontSize: 20,
                                                 ),

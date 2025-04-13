@@ -107,6 +107,7 @@ class __RegisterScreenState extends State<RegisterScreen> {
                             inputFormatters: [
                               LengthLimitingTextInputFormatter(50)
                             ],
+                            textDirection: TextDirection.ltr,
                             decoration: InputDecoration(
                               hintText: 'Name',
                               hintStyle: TextStyle(
@@ -158,6 +159,7 @@ class __RegisterScreenState extends State<RegisterScreen> {
                                   inputFormatters: [
                                     LengthLimitingTextInputFormatter(100)
                                   ],
+                                  textDirection: TextDirection.ltr,
                                   decoration: InputDecoration(
                                     hintText: 'Email',
                                     hintStyle: TextStyle(
@@ -242,6 +244,7 @@ class __RegisterScreenState extends State<RegisterScreen> {
                                       inputFormatters: [
                                         LengthLimitingTextInputFormatter(50)
                                       ],
+                                      textDirection: TextDirection.ltr,
                                       decoration: InputDecoration(
                                           hintText: 'Password',
                                           hintStyle: TextStyle(
@@ -317,6 +320,7 @@ class __RegisterScreenState extends State<RegisterScreen> {
                                         inputFormatters: [
                                           LengthLimitingTextInputFormatter(100)
                                         ],
+                                        textDirection: TextDirection.ltr,
                                         decoration: InputDecoration(
                                           hintText: 'Confirm Password',
                                           hintStyle: TextStyle(

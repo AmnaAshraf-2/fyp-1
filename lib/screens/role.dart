@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:logistics_app/screens/users/customer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
 import 'package:logistics_app/screens/users/drivers.dart';
 import 'package:logistics_app/screens/users/enterprise.dart';
 
@@ -17,10 +19,20 @@ class _RoleScreenState extends State<RoleScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userRole', role);
 
+    // ✅ Save role to Firebase under user's UID
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String uid = user.uid;
+      await FirebaseDatabase.instance.ref().child('users/$uid').update({
+        'role': role,
+      });
+    }
+
+    // 🔄 Navigate to the appropriate screen
     Widget screen;
     switch (role) {
       case 'customer':
-        screen = const CustomerScreen();
+        screen = const CustomerDashboard();
         break;
       case 'driver':
         screen = const DriversScreen();
