@@ -32,12 +32,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     String? languageCode = prefs.getString('languageCode') ?? 'en';
 
-    // Apply saved language
     MyApp.setLocale(context, Locale(languageCode));
 
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      // No user is signed in, go to Language screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()),
@@ -50,7 +48,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         await FirebaseDatabase.instance.ref('users/$uid/role').get();
 
     if (!snapshot.exists) {
-      // Role not set, go to Role selection screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()),
@@ -83,26 +80,78 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFF9E6),
+        body: Stack(
           children: [
-            const Text(
-              "Welcome aboard!",
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
+            // Background circles (same as splash)
+            Positioned(
+              top: -80,
+              left: -80,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Colors.orangeAccent.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              "Plan, track, and manage logistics with ease.",
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[700],
+            Positioned(
+              bottom: -100,
+              right: -100,
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
               ),
-              textAlign: TextAlign.center,
+            ),
+            Positioned(
+              top: 150,
+              right: -80,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: Colors.yellow.shade200.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+
+            // Content
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_outline_rounded,
+                      size: 80, color: Colors.orange.shade700),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Welcome Aboard!",
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade700,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "PLAN • TRACK • MANAGE",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

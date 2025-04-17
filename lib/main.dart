@@ -87,11 +87,11 @@ class _MyAppState extends State<MyApp> {
       ],
       initialRoute: '/', // Set initial screen to SplashScreen or LoginScreen
       routes: {
-        '/': (context) => const Splashscreen(),
-        '/login': (context) => const login(),
+       // '/': (context) => const Splashscreen(),
+        '/login': (context) => const LoginScreen(),
         '/Register': (context) => const RegisterScreen(),
         '/Password': (context) => const ForgotPasswordScreen(),
-        '/Welcome': (context) => const WelcomeScreen(),
+        '/': (context) => const WelcomeScreen(),
         '/language': (context) => const LanguageSettingsScreen(),
         '/role': (context) => const RoleScreen(),
         '/customerDashboard': (context) => const CustomerDashboard(),

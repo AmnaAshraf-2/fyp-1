@@ -1,10 +1,10 @@
 import 'package:email_validator/email_validator.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logistics_app/screens/login.dart';
 import 'package:logistics_app/splash/welcome.dart';
 
@@ -12,459 +12,306 @@ class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => __RegisterScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class __RegisterScreenState extends State<RegisterScreen> {
-  bool isLoading = false; // This variable will control the loading state
-
-  final nameTextEditingController = TextEditingController();
-  final phoneTextEditingController = TextEditingController();
-  final emailTextEditingController = TextEditingController();
-  final passwordTextEditingController = TextEditingController();
-  final confirmTextEditingController = TextEditingController();
-
+class _RegisterScreenState extends State<RegisterScreen> {
+  bool isLoading = false;
   bool _passwordVisible = false;
-
   final _formKey = GlobalKey<FormState>();
 
-  void _submit() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      try {
-        await FirebaseAuth.instance
-            .createUserWithEmailAndPassword(
-          email: emailTextEditingController.text.trim(),
-          password: passwordTextEditingController.text.trim(),
-        )
-            .then((authResult) async {
-          User? currentUser = authResult.user;
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
-          if (currentUser != null) {
-            Map<String, dynamic> userMap = {
-              "id": currentUser.uid,
-              "name": nameTextEditingController.text.trim(),
-              "email": emailTextEditingController.text.trim(),
-              "phone": phoneTextEditingController.text.trim(),
-            };
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
 
-            DatabaseReference userRef =
-                FirebaseDatabase.instance.ref().child("users");
+    try {
+      setState(() => isLoading = true);
 
-            await userRef.child(currentUser.uid).set(userMap).then((_) {
-              print("User data saved successfully!");
-            }).catchError((error) {
-              print("Error saving user data: $error");
-            });
+      final authResult =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
-            Fluttertoast.showToast(msg: "Successfully registered");
-            Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (c) => WelcomeScreen()));
-          }
-        });
-      } catch (error) {
-        print("Firebase Auth Error: $error");
-        Fluttertoast.showToast(msg: "Registration failed: $error");
+      if (authResult.user != null) {
+        final userMap = {
+          "id": authResult.user!.uid,
+          "name": nameController.text.trim(),
+          "email": emailController.text.trim(),
+          "phone": phoneController.text.trim(),
+        };
+
+        await FirebaseDatabase.instance
+            .ref()
+            .child("users")
+            .child(authResult.user!.uid)
+            .set(userMap);
+
+        Fluttertoast.showToast(msg: "Registration successful");
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (c) => const WelcomeScreen()));
       }
+    } on FirebaseAuthException catch (e) {
+      Fluttertoast.showToast(msg: _handleFirebaseError(e.code));
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Registration failed: ${e.toString()}");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  String _handleFirebaseError(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'Email already registered';
+      case 'invalid-email':
+        return 'Invalid email format';
+      case 'weak-password':
+        return 'Password too weak';
+      default:
+        return 'Registration failed';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    bool darkTheme =
-        MediaQuery.of(context).platformBrightness == Brightness.dark;
-
-    return GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: Scaffold(
-            body: ListView(padding: EdgeInsets.all(8), children: [
-          Column(children: [
-            Image.asset(darkTheme ? '' : ''),
-            SizedBox(
-              height: 20,
-            ),
-            Text(
-              "Register",
-              style: TextStyle(
-                color: darkTheme ? Colors.amber.shade400 : Colors.blue,
-                fontSize: 25,
-                fontWeight: FontWeight.bold,
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFF9E6),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Card(
+              elevation: 10,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(25),
+                child: IgnorePointer(
+                  ignoring: isLoading,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Logistics Guru",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        "CALCULATE EVERY LOAD",
+                        style: TextStyle(
+                          fontSize: 14,
+                          letterSpacing: 1.2,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            _buildNameField(),
+                            const SizedBox(height: 15),
+                            _buildEmailField(),
+                            const SizedBox(height: 15),
+                            _buildPhoneField(),
+                            const SizedBox(height: 15),
+                            _buildPasswordField(),
+                            const SizedBox(height: 15),
+                            _buildConfirmPasswordField(),
+                            const SizedBox(height: 25),
+                            _buildRegisterButton(),
+                            const SizedBox(height: 25),
+                            _buildLoginLink(),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(15, 20, 15, 50),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          TextFormField(
-                            inputFormatters: [
-                              LengthLimitingTextInputFormatter(50)
-                            ],
-                            textDirection: TextDirection.ltr,
-                            decoration: InputDecoration(
-                              hintText: 'Name',
-                              hintStyle: TextStyle(
-                                color: Colors.grey,
-                              ),
-                              filled: true,
-                              fillColor: darkTheme
-                                  ? Colors.black45
-                                  : Colors.grey.shade200,
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(40),
-                                  borderSide: BorderSide(
-                                    width: 0,
-                                    style: BorderStyle.none,
-                                  )),
-                              prefixIcon: Icon(
-                                Icons.person,
-                                color: darkTheme
-                                    ? Colors.amber.shade400
-                                    : Colors.grey,
-                              ),
-                            ),
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                            validator: (text) {
-                              if (text == null || text.isEmpty) {
-                                return "name can't be empty";
-                              }
-                              if (text.length < 2) {
-                                return 'Please enter a valid name';
-                              }
-                              if (text.length > 49) {
-                                return "name can't be more than 50";
-                              }
-                            },
-                            onChanged: (text) => setState(() {
-                              nameTextEditingController.text = text;
-                            }),
-                          ),
-                          SizedBox(
-                            height: 10,
-                          ),
-                          Form(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                TextFormField(
-                                  inputFormatters: [
-                                    LengthLimitingTextInputFormatter(100)
-                                  ],
-                                  textDirection: TextDirection.ltr,
-                                  decoration: InputDecoration(
-                                    hintText: 'Email',
-                                    hintStyle: TextStyle(
-                                      color: Colors.grey,
-                                    ),
-                                    filled: true,
-                                    fillColor: darkTheme
-                                        ? Colors.black45
-                                        : Colors.grey.shade200,
-                                    border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(40),
-                                        borderSide: BorderSide(
-                                          width: 0,
-                                          style: BorderStyle.none,
-                                        )),
-                                    prefixIcon: Icon(
-                                      Icons.mail,
-                                      color: darkTheme
-                                          ? Colors.amber.shade400
-                                          : Colors.grey,
-                                    ),
-                                  ),
-                                  autovalidateMode:
-                                      AutovalidateMode.onUserInteraction,
-                                  validator: (text) {
-                                    if (text == null || text.isEmpty) {
-                                      return "email can't be empty";
-                                    }
-                                    if (EmailValidator.validate(text) == true) {
-                                      return null;
-                                    }
-                                    if (text.length < 2) {
-                                      return 'Please enter a valid email';
-                                    }
-                                    if (text.length > 49) {
-                                      return "email can't be more than 99";
-                                    }
-                                  },
-                                  onChanged: (text) => setState(() {
-                                    emailTextEditingController.text = text;
-                                  }),
-                                ),
-                                SizedBox(
-                                  height: 10,
-                                ),
-                                IntlPhoneField(
-                                  showCountryFlag: false,
-                                  dropdownIcon: Icon(
-                                    Icons.arrow_drop_down,
-                                    color: darkTheme
-                                        ? Colors.amber.shade400
-                                        : Colors.grey,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: 'phome',
-                                    hintStyle: TextStyle(
-                                      color: Colors.grey,
-                                    ),
-                                    filled: true,
-                                    fillColor: darkTheme
-                                        ? Colors.black45
-                                        : Colors.grey.shade200,
-                                    border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(40),
-                                        borderSide: BorderSide(
-                                          width: 0,
-                                          style: BorderStyle.none,
-                                        )),
-                                  ),
-                                  onChanged: (text) => setState(() {
-                                    phoneTextEditingController.text =
-                                        text.completeNumber;
-                                  }),
-                                ),
-                                Form(
-                                    child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    TextFormField(
-                                      obscureText: !_passwordVisible,
-                                      inputFormatters: [
-                                        LengthLimitingTextInputFormatter(50)
-                                      ],
-                                      textDirection: TextDirection.ltr,
-                                      decoration: InputDecoration(
-                                          hintText: 'Password',
-                                          hintStyle: TextStyle(
-                                            color: Colors.grey,
-                                          ),
-                                          filled: true,
-                                          fillColor: darkTheme
-                                              ? Colors.black45
-                                              : Colors.grey.shade200,
-                                          border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(40),
-                                              borderSide: BorderSide(
-                                                width: 0,
-                                                style: BorderStyle.none,
-                                              )),
-                                          prefixIcon: Icon(
-                                            Icons.password,
-                                            color: darkTheme
-                                                ? Colors.amber.shade400
-                                                : Colors.grey,
-                                          ),
-                                          suffix: IconButton(
-                                              onPressed: () {
-                                                setState(() {
-                                                  _passwordVisible =
-                                                      !_passwordVisible;
-                                                });
-                                              },
-                                              icon: Icon(
-                                                _passwordVisible
-                                                    ? Icons.visibility
-                                                    : Icons.visibility_off,
-                                                color: darkTheme
-                                                    ? Colors.amber.shade400
-                                                    : Colors.grey,
-                                              ))),
-                                      autovalidateMode:
-                                          AutovalidateMode.onUserInteraction,
-                                      validator: (text) {
-                                        if (text == null || text.isEmpty) {
-                                          return "password can't be empty";
-                                        }
-                                        if (EmailValidator.validate(text) ==
-                                            true) {
-                                          return null;
-                                        }
-                                        if (text.length < 6) {
-                                          return 'Please enter a valid password';
-                                        }
-                                        if (text.length > 49) {
-                                          return "password can't be more than 99";
-                                        }
-                                        return null;
-                                      },
-                                      onChanged: (text) => setState(() {
-                                        passwordTextEditingController.text =
-                                            text;
-                                      }),
-                                    ),
-                                    SizedBox(
-                                      height: 10,
-                                    ),
-                                  ],
-                                )),
-                                Form(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      TextFormField(
-                                        inputFormatters: [
-                                          LengthLimitingTextInputFormatter(100)
-                                        ],
-                                        textDirection: TextDirection.ltr,
-                                        decoration: InputDecoration(
-                                          hintText: 'Confirm Password',
-                                          hintStyle: TextStyle(
-                                            color: Colors.grey,
-                                          ),
-                                          filled: true,
-                                          fillColor: darkTheme
-                                              ? Colors.black45
-                                              : Colors.grey.shade200,
-                                          border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(40),
-                                              borderSide: BorderSide(
-                                                width: 0,
-                                                style: BorderStyle.none,
-                                              )),
-                                          prefixIcon: Icon(
-                                            Icons.mail,
-                                            color: darkTheme
-                                                ? Colors.amber.shade400
-                                                : Colors.grey,
-                                          ),
-                                        ),
-                                        autovalidateMode:
-                                            AutovalidateMode.onUserInteraction,
-                                        validator: (text) {
-                                          if (text == null || text.isEmpty) {
-                                            return "password can't be empty";
-                                          }
-                                          if (EmailValidator.validate(text) ==
-                                              true) {
-                                            return null;
-                                          }
-                                          if (text !=
-                                              passwordTextEditingController
-                                                  .text) {
-                                            return "password does not match";
-                                          }
-                                          if (text.length < 2) {
-                                            return 'Please enter a valid password';
-                                          }
-                                          if (text.length > 49) {
-                                            return "password can't be more than 99";
-                                          }
-                                        },
-                                        onChanged: (text) => setState(() {
-                                          confirmTextEditingController.text =
-                                              text;
-                                        }),
-                                      ),
-                                      SizedBox(
-                                        height: 10,
-                                      ),
-                                      ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: darkTheme
-                                              ? Colors.amber.shade400
-                                              : Colors
-                                                  .grey, // Use backgroundColor
-                                          foregroundColor: Colors
-                                              .white, // Use foregroundColor
-                                        ),
-                                        onPressed: () async {
-                                          setState(() {
-                                            isLoading =
-                                                true; // Set loading to true when the button is pressed
-                                          });
+          ),
+        ),
+      ),
+    );
+  }
 
-                                          // Call your registration or login function
-                                          _submit();
+  Widget _buildNameField() {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: TextFormField(
+        controller: nameController,
+        decoration: InputDecoration(
+          labelText: 'Full Name',
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          prefixIcon: Icon(Icons.person, color: Colors.orange),
+        ),
+        inputFormatters: [LengthLimitingTextInputFormatter(50)],
+        validator: (value) {
+          if (value == null || value.isEmpty) return "Name required";
+          if (value.length < 2) return "Minimum 2 characters";
+          return null;
+        },
+      ),
+    );
+  }
 
-                                          setState(() {
-                                            isLoading =
-                                                false; // Set loading to false after the operation finishes
-                                          });
-                                        },
-                                        child: isLoading
-                                            ? CircularProgressIndicator(
-                                                color: Colors
-                                                    .white, // Color of the progress indicator
-                                              )
-                                            : Text(
-                                                'Register',
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                ),
-                                              ),
-                                      ),
-                                      SizedBox(
-                                        height: 10,
-                                      ),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            "Have an account?",
-                                            style: TextStyle(
-                                              color: Colors.grey,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                          SizedBox(width: 5),
-                                          GestureDetector(
-                                            onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        login()),
-                                              );
-                                            },
-                                            child: Text(
-                                              "Log in",
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors
-                                                    .blue, // hyperlink color
-                                                decoration:
-                                                    TextDecoration.underline,
-                                                decorationColor: Colors
-                                                    .blue, // make underline blue
-                                                decorationThickness:
-                                                    1.2, // slightly bolder underline
-                                                height:
-                                                    1.4, // adds a bit of space between text and underline
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    )
-                  ]),
-            )
-          ]),
-        ])));
+  Widget _buildEmailField() {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: TextFormField(
+        controller: emailController,
+        decoration: InputDecoration(
+          labelText: 'Email',
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          prefixIcon: Icon(Icons.mail, color: Colors.orange),
+        ),
+        keyboardType: TextInputType.emailAddress,
+        validator: (value) =>
+            EmailValidator.validate(value ?? '') ? null : "Enter valid email",
+      ),
+    );
+  }
+
+  Widget _buildPhoneField() {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: IntlPhoneField(
+        controller: phoneController,
+        initialCountryCode: 'PK',
+        showCountryFlag: false,
+        disableLengthCheck: true,
+        decoration: InputDecoration(
+          labelText: 'Phone Number',
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        onChanged: (phone) => phoneController.text = phone.completeNumber,
+      ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: TextFormField(
+        controller: passwordController,
+        obscureText: !_passwordVisible,
+        decoration: InputDecoration(
+          labelText: 'Password',
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          prefixIcon: Icon(Icons.lock, color: Colors.orange),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _passwordVisible ? Icons.visibility : Icons.visibility_off,
+              color: Colors.orange,
+            ),
+            onPressed: () =>
+                setState(() => _passwordVisible = !_passwordVisible),
+          ),
+        ),
+        validator: (value) =>
+            (value?.length ?? 0) >= 6 ? null : "Minimum 6 characters",
+      ),
+    );
+  }
+
+  Widget _buildConfirmPasswordField() {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: TextFormField(
+        controller: confirmPasswordController,
+        obscureText: true,
+        decoration: InputDecoration(
+          labelText: 'Confirm Password',
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          prefixIcon: Icon(Icons.lock_reset, color: Colors.orange),
+        ),
+        validator: (value) =>
+            value != passwordController.text ? "Passwords don't match" : null,
+      ),
+    );
+  }
+
+  Widget _buildRegisterButton() {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 40),
+        backgroundColor: Colors.orange.shade700,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+        ),
+      ),
+      onPressed: _submit,
+      child: isLoading
+          ? const CircularProgressIndicator(color: Colors.white)
+          : const Text('REGISTER', style: TextStyle(fontSize: 18)),
+    );
+  }
+
+  Widget _buildLoginLink() {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "Have an account? ",
+            style: TextStyle(color: Colors.grey.shade700),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            ),
+            child: Text(
+              "LOGIN",
+              style: TextStyle(
+                color: Colors.orange.shade700,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          )
+        ],
+      ),
+    );
   }
 }
