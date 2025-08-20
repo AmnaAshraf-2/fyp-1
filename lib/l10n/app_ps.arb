@@ -2,5 +2,11 @@
   "chooseRole": "خپل رول وټاکئ",
   "customer": "پیرودونکی",
   "driver": "چلونکی",
-  "enterprise": "سازمان"
+  "enterprise": "سازمان",
+  "dashboardTitle": "د پیرودونکي ډشبورډ",
+  "newBookings": "نوې بکینګونه",
+  "liveTrip": "ژوندی سفر",
+  "upcomingBookings": "راتلونکي بکینګونه",
+  "pastBookings": "تېر بکینګونه",
+  "select":"select"
 }

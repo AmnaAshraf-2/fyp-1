@@ -2,8 +2,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:logistics_app/screens/language.dart';
 import 'package:logistics_app/screens/login.dart';
+import 'package:logistics_app/screens/password.dart';
+import 'package:logistics_app/screens/reg.dart';
 import 'package:logistics_app/screens/role.dart';
+import 'package:logistics_app/screens/users/customer/cargoDetails.dart';
+import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
+import 'package:logistics_app/screens/users/customer/newBooking.dart';
+import 'package:logistics_app/screens/users/driver/drivers.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise.dart';
 import 'package:logistics_app/splash/splashscreen.dart';
+import 'package:logistics_app/splash/welcome.dart';
 import 'package:logistics_app/widgets/themes.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -61,7 +69,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Logistics App',
       locale: _locale,
       themeMode: ThemeMode.system,
       theme: MyTheme.lightTheme,
@@ -77,7 +85,22 @@ class _MyAppState extends State<MyApp> {
         Locale('ur'),
         Locale('ps'),
       ],
-      home: const login(),
+      initialRoute: '/',
+      routes: {
+        // customerDashboard
+        '/splash': (context) => const Splashscreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/Password': (context) => const ForgotPasswordScreen(),
+        '/welcome': (context) => const WelcomeScreen(),
+        '/language': (context) => const LanguageSettingsScreen(),
+        '/role': (context) => const RoleScreen(),
+        '/': (context) => const CustomerDashboard(),
+        '/driverDashboard': (context) => const DriversScreen(),
+        '/enterpriseDashboard': (context) => const EnterpriseScreen(),
+        '/newBookings': (context) => const NewBookingsScreen(),
+        '/cargo-details': (context) => const CargoDetailsScreen(),
+      },
     );
   }
 }
