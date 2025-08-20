@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logistics_app/main.dart';
 import 'package:logistics_app/screens/language.dart';
 import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
-import 'package:logistics_app/screens/users/drivers.dart';
-import 'package:logistics_app/screens/users/enterprise.dart';
+import 'package:logistics_app/screens/users/driver/drivers.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 

@@ -7,6 +7,8 @@ import 'package:logistics_app/global/global.dart';
 import 'package:logistics_app/screens/password.dart';
 import 'package:logistics_app/screens/reg.dart';
 import 'package:logistics_app/splash/welcome.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,6 +23,43 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   bool _passwordVisible = false;
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => isLoading = true);
+
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        setState(() => isLoading = false);
+        return; // User cancelled
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+      await googleUser.authentication;
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential =
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        Fluttertoast.showToast(msg: "Google sign-in successful");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (c) => const WelcomeScreen()),
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Google sign-in failed");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -80,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Logistics Guru",
+                        "LAARI",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -194,6 +233,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                   : const Text('LOGIN',
                                       style: TextStyle(fontSize: 18)),
                             ),
+                            const SizedBox(height: 10),
+                            ElevatedButton.icon(
+                              //icon: const Icon(Icons.login),
+                              label: const Text("Sign in with Google"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black87,
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                  side: const BorderSide(color: Colors.grey),
+                                ),
+                              ),
+                              onPressed: isLoading ? null : _signInWithGoogle,
+                            ),
+
                           ],
                         ),
                       ),

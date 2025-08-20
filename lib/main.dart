@@ -8,8 +8,8 @@ import 'package:logistics_app/screens/role.dart';
 import 'package:logistics_app/screens/users/customer/cargoDetails.dart';
 import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
 import 'package:logistics_app/screens/users/customer/newBooking.dart';
-import 'package:logistics_app/screens/users/drivers.dart';
-import 'package:logistics_app/screens/users/enterprise.dart';
+import 'package:logistics_app/screens/users/driver/drivers.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise.dart';
 import 'package:logistics_app/splash/splashscreen.dart';
 import 'package:logistics_app/splash/welcome.dart';
 import 'package:logistics_app/widgets/themes.dart';
@@ -60,7 +60,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _loadLocale() async {
     final prefs = await SharedPreferences.getInstance();
-    String? code = prefs.getString('languageCode') ?? 'ur';
+    String? code = prefs.getString('languageCode') ?? 'en';
     setState(() {
       _locale = Locale(code);
     });
@@ -85,21 +85,21 @@ class _MyAppState extends State<MyApp> {
         Locale('ur'),
         Locale('ps'),
       ],
-      initialRoute: '/', // Set initial screen to SplashScreen or LoginScreen
+      initialRoute: '/',
       routes: {
-       // '/': (context) => const Splashscreen(),
+        // customerDashboard
+        '/splash': (context) => const Splashscreen(),
         '/login': (context) => const LoginScreen(),
-        '/Register': (context) => const RegisterScreen(),
+        '/register': (context) => const RegisterScreen(),
         '/Password': (context) => const ForgotPasswordScreen(),
-        '/': (context) => const WelcomeScreen(),
+        '/welcome': (context) => const WelcomeScreen(),
         '/language': (context) => const LanguageSettingsScreen(),
         '/role': (context) => const RoleScreen(),
-        '/customerDashboard': (context) => const CustomerDashboard(),
+        '/': (context) => const CustomerDashboard(),
         '/driverDashboard': (context) => const DriversScreen(),
         '/enterpriseDashboard': (context) => const EnterpriseScreen(),
         '/newBookings': (context) => const NewBookingsScreen(),
         '/cargo-details': (context) => const CargoDetailsScreen(),
-        // Add more routes here for other screens
       },
     );
   }

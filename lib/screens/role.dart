@@ -4,8 +4,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
-import 'package:logistics_app/screens/users/drivers.dart';
-import 'package:logistics_app/screens/users/enterprise.dart';
+import 'package:logistics_app/screens/users/driver/drivers.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise.dart';
 
 class RoleScreen extends StatefulWidget {
   const RoleScreen({super.key});
@@ -18,6 +18,7 @@ class _RoleScreenState extends State<RoleScreen> {
   Future<void> _saveRoleAndNavigate(String role) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userRole', role);
+    String? fullName = prefs.getString('full_name') ?? "Guest User";
 
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {

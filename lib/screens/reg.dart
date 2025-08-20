@@ -7,6 +7,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:logistics_app/screens/login.dart';
 import 'package:logistics_app/splash/welcome.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -19,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool isLoading = false;
   bool _passwordVisible = false;
   final _formKey = GlobalKey<FormState>();
+  String completePhoneNumber = ''; // No need for `late`
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
@@ -26,6 +30,123 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
+
+  Future<String> _getSmsCodeFromUser() async {
+    String smsCode = '';
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Enter SMS Code'),
+          content: TextField(
+            keyboardType: TextInputType.number,
+            onChanged: (value) {
+              smsCode = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Confirm'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            )
+          ],
+        );
+      },
+    );
+    return smsCode;
+  }
+
+  Future<void> _phoneSignIn() async {
+    if (completePhoneNumber.isEmpty) {
+      Fluttertoast.showToast(msg: "Please enter phone number first");
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: completePhoneNumber.trim(),
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await FirebaseAuth.instance.signInWithCredential(credential);
+        Fluttertoast.showToast(msg: "Phone Sign-In successful");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (c) => const WelcomeScreen()),
+        );
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        Fluttertoast.showToast(msg: "Verification failed: ${e.message}");
+      },
+      codeSent: (String verificationId, int? resendToken) async {
+        String smsCode = await _getSmsCodeFromUser();
+
+        if (smsCode.isNotEmpty) {
+          try {
+            PhoneAuthCredential credential = PhoneAuthProvider.credential(
+                verificationId: verificationId, smsCode: smsCode);
+            await FirebaseAuth.instance.signInWithCredential(credential);
+            Fluttertoast.showToast(msg: "Phone Sign-In successful");
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (c) => const WelcomeScreen()),
+            );
+          } catch (e) {
+            Fluttertoast.showToast(msg: "Invalid code: ${e.toString()}");
+          }
+        }
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {},
+    );
+
+    setState(() => isLoading = false);
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      if (kIsWeb) {
+        // For Web
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        final UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithPopup(googleProvider);
+
+        if (userCredential.user != null) {
+          Fluttertoast.showToast(msg: "Google Sign-In successful (Web)");
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (c) => const WelcomeScreen()),
+          );
+        }
+      } else {
+        // For Mobile
+        final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+        if (googleUser == null) return;
+
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
+
+        if (userCredential.user != null) {
+          Fluttertoast.showToast(msg: "Google Sign-In successful (Mobile)");
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (c) => const WelcomeScreen()),
+          );
+        }
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Google Sign-In failed: ${e.toString()}");
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -52,6 +173,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             .child("users")
             .child(authResult.user!.uid)
             .set(userMap);
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('full_name', nameController.text.trim());
+        await prefs.setString('profile_image', ""); // Empty initially
 
         Fluttertoast.showToast(msg: "Registration successful");
         Navigator.pushReplacement(
@@ -101,7 +226,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Logistics Guru",
+                        "LAARI",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -135,6 +260,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             _buildRegisterButton(),
                             const SizedBox(height: 25),
                             _buildLoginLink(),
+                            const SizedBox(height: 20),
+                            _buildGoogleSignInButton(),
+                            const SizedBox(height: 10),
+                            //  _buildPhoneAuthButton(),
                           ],
                         ),
                       )
@@ -201,9 +330,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       textDirection: TextDirection.ltr,
       child: IntlPhoneField(
         controller: phoneController,
-        initialCountryCode: 'PK',
+        initialCountryCode:
+            'PK', // Set the initial country code as 'PK' for Pakistan
         showCountryFlag: false,
         disableLengthCheck: true,
+        keyboardType: TextInputType.phone,
         decoration: InputDecoration(
           labelText: 'Phone Number',
           filled: true,
@@ -213,7 +344,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             borderSide: BorderSide.none,
           ),
         ),
-        onChanged: (phone) => phoneController.text = phone.completeNumber,
+        onChanged: (phone) {
+          completePhoneNumber = phone.completeNumber; // Save complete number
+          debugPrint("Complete Number: ${phone.completeNumber}");
+        },
       ),
     );
   }
@@ -253,7 +387,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       textDirection: TextDirection.ltr,
       child: TextFormField(
         controller: confirmPasswordController,
-        obscureText: true,
+        obscureText: !_passwordVisible,
         decoration: InputDecoration(
           labelText: 'Confirm Password',
           filled: true,
@@ -263,6 +397,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             borderSide: BorderSide.none,
           ),
           prefixIcon: Icon(Icons.lock_reset, color: Colors.orange),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _passwordVisible ? Icons.visibility : Icons.visibility_off,
+              color: Colors.orange,
+            ),
+            onPressed: () =>
+                setState(() => _passwordVisible = !_passwordVisible),
+          ),
         ),
         validator: (value) =>
             value != passwordController.text ? "Passwords don't match" : null,
@@ -312,6 +454,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
           )
         ],
       ),
+    );
+  }
+
+  Widget _buildGoogleSignInButton() {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+          side: BorderSide(color: Colors.orange.shade700),
+        ),
+      ),
+      // icon: Image.asset('assets/g.png',
+      //     height: 24),
+      label: const Text('Continue with Google'),
+      onPressed: _signInWithGoogle,
+    );
+  }
+
+  Widget _buildPhoneAuthButton() {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+        backgroundColor: Colors.orange.shade700,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+        ),
+      ),
+      icon: const Icon(Icons.phone),
+      label: const Text('Continue with Phone'),
+      onPressed: _phoneSignIn,
     );
   }
 }

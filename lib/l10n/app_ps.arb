@@ -7,5 +7,6 @@
   "newBookings": "نوې بکینګونه",
   "liveTrip": "ژوندی سفر",
   "upcomingBookings": "راتلونکي بکینګونه",
-  "pastBookings": "تېر بکینګونه"
+  "pastBookings": "تېر بکینګونه",
+  "select":"select"
 }

@@ -87,7 +87,7 @@ class _SplashscreenState extends State<Splashscreen> {
                     size: 80, color: Colors.orange.shade700),
                 SizedBox(height: 20),
                 Text(
-                  "Logistics Guru",
+                  "LAARI",
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
