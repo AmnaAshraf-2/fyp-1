@@ -56,11 +56,11 @@ dependencies:
   flutter_polyline_points:
   permission_handler:
   image_picker: ^0.8.4
-  file_picker: ^5.2.4
+  file_picker: ^10.3.3
   cloud_firestore: ^5.4.0
-  contacts_service: ^0.6.1
   flutter_localizations:
     sdk: flutter
+  flutter_contacts: ^1.1.9+2
 
 dev_dependencies:
   flutter_test:

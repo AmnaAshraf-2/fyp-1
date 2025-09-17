@@ -8,6 +8,7 @@ import 'package:logistics_app/screens/role.dart';
 import 'package:logistics_app/screens/users/customer/cargoDetails.dart';
 import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
 import 'package:logistics_app/screens/users/customer/newBooking.dart';
+import 'package:logistics_app/screens/users/driver/driver_registration.dart';
 import 'package:logistics_app/screens/users/driver/drivers.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise.dart';
 import 'package:logistics_app/splash/splashscreen.dart';
@@ -16,6 +17,7 @@ import 'package:logistics_app/widgets/themes.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logistics_app/screens/users/driver/vehicle_info_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,19 +89,25 @@ class _MyAppState extends State<MyApp> {
       ],
       initialRoute: '/',
       routes: {
-        // customerDashboard
+        // 'role
         '/splash': (context) => const Splashscreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/Password': (context) => const ForgotPasswordScreen(),
         '/welcome': (context) => const WelcomeScreen(),
         '/language': (context) => const LanguageSettingsScreen(),
-        '/role': (context) => const RoleScreen(),
-        '/': (context) => const CustomerDashboard(),
+        '/': (context) => const RoleScreen(),
+        '/customerDashboard': (context) => const CustomerDashboard(),
         '/driverDashboard': (context) => const DriversScreen(),
         '/enterpriseDashboard': (context) => const EnterpriseScreen(),
         '/newBookings': (context) => const NewBookingsScreen(),
         '/cargo-details': (context) => const CargoDetailsScreen(),
+        '/driver-registration': (context) => const DriverRegistration(),
+        '/vehicle-info': (context) => VehicleInfoPage(
+              cnic: '',
+              license: '',
+              phone: '',
+            ),
       },
     );
   }
