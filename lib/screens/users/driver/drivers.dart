@@ -33,12 +33,6 @@ class _DriversScreenState extends State<DriversScreen> {
             ),
             dashboardCard(
               context,
-              title: "Vehicle Information",
-              icon: Icons.local_shipping,
-              page: const VehicleInfoPage(),
-            ),
-            dashboardCard(
-              context,
               title: "Profile",
               icon: Icons.person,
               page: const ProfilePage(),
@@ -93,15 +87,6 @@ class PastTripsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(appBar: AppBar(title: const Text("Past Trips")));
-  }
-}
-
-class VehicleInfoPage extends StatelessWidget {
-  const VehicleInfoPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: const Text("Vehicle Information")));
   }
 }
 

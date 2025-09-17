@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
 import 'package:logistics_app/screens/users/driver/drivers.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise.dart';
+import 'package:logistics_app/screens/users/driver/driver_registration.dart';
 
 class RoleScreen extends StatefulWidget {
   const RoleScreen({super.key});
@@ -38,7 +39,7 @@ class _RoleScreenState extends State<RoleScreen> {
       case 'customer':
         return const CustomerDashboard();
       case 'driver':
-        return const DriversScreen();
+        return const DriverRegistration();
       case 'enterprise':
         return const EnterpriseScreen();
       default:

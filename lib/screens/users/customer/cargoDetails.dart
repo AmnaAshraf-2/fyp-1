@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:contacts_service/contacts_service.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:logistics_app/data/modals.dart';
 import 'package:logistics_app/screens/users/customer/summary.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -20,17 +20,18 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
   String weightUnit = 'kg';
   bool _termsAgreed = false;
   TimeOfDay? pickupTime;
-  LatLng? pickupLocation;
-  LatLng? destinationLocation;
 
-  final _pickupController = TextEditingController();
-  final _destinationController = TextEditingController();
+  // LatLng? pickupLocation;
+  // LatLng? destinationLocation;
+
+  // final _pickupController = TextEditingController();
+  // final _destinationController = TextEditingController();
   final _loadNameController = TextEditingController();
   final _weightController = TextEditingController();
   final _quantityController = TextEditingController();
   final _offerFareController = TextEditingController();
-  final _senderPhoneController = TextEditingController();
-  final _receiverPhoneController = TextEditingController();
+  // final _senderPhoneController = TextEditingController();
+  // final _receiverPhoneController = TextEditingController();
 
   bool isPassenger = false;
   bool isInsured = false;
@@ -50,12 +51,13 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
     }
   }
 
+  /*
   Future<void> _pickContact(TextEditingController controller) async {
     final permission = await Permission.contacts.request();
     if (permission.isGranted) {
-      final contact = await ContactsService.openDeviceContactPicker();
-      if (contact != null && contact.phones!.isNotEmpty) {
-        controller.text = contact.phones!.first.value ?? '';
+      final contact = await FlutterContacts.openExternalPick();
+      if (contact != null && contact.phones.isNotEmpty) {
+        controller.text = contact.phones.first.number;
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,6 +102,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
       return '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
     }
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -117,15 +120,14 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
               _buildTextField('Load Dimensions (optional)', null),
               _buildTextField('Quantity of Vehicles', _quantityController,
                   TextInputType.number),
-              _buildPhoneField('Sender Phone Number', _senderPhoneController),
-              _buildPhoneField(
-                  'Receiver Phone Number', _receiverPhoneController),
-              _buildLocationField('Pickup Location', _pickupController,
-                  () => _selectLocation(context, true)),
-              _buildLocationField(
-                  'Destination Location',
-                  _destinationController,
-                  () => _selectLocation(context, false)),
+              // _buildPhoneField('Sender Phone Number', _senderPhoneController),
+              // _buildPhoneField('Receiver Phone Number', _receiverPhoneController),
+              // _buildLocationField('Pickup Location', _pickupController,
+              //     () => _selectLocation(context, true)),
+              // _buildLocationField(
+              //     'Destination Location',
+              //     _destinationController,
+              //     () => _selectLocation(context, false)),
               _buildTimePicker(),
               _buildTextField('Your Offer Fare (Rs)', _offerFareController,
                   TextInputType.number),
@@ -159,6 +161,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
     );
   }
 
+  /*
   Widget _buildPhoneField(String label, TextEditingController controller) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -174,6 +177,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
       ),
     );
   }
+  */
 
   Widget _buildWeightField() {
     return Padding(
@@ -189,7 +193,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
           Expanded(
             flex: 2,
             child: DropdownButtonFormField<String>(
-              key: Key('unitDropdown'),
+              key: const Key('unitDropdown'),
               value: weightUnit,
               onChanged: (value) => setState(() => weightUnit = value!),
               items: ['kg', 'tons']
@@ -208,7 +212,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: DropdownButtonFormField<String>(
-        key: Key('loadTypeDropdown'),
+        key: const Key('loadTypeDropdown'),
         value: loadType,
         onChanged: (value) => setState(() => loadType = value!),
         items: ['Fragile', 'Heavy', 'Perishable', 'General Goods']
@@ -220,6 +224,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
     );
   }
 
+  /*
   Widget _buildLocationField(
       String label, TextEditingController controller, VoidCallback onTap) {
     return Padding(
@@ -238,6 +243,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
       ),
     );
   }
+  */
 
   Widget _buildTimePicker() {
     return Padding(
@@ -347,6 +353,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
   }
 }
 
+/*
 class MapPickerScreen extends StatelessWidget {
   final LatLng? initialLocation;
   const MapPickerScreen({super.key, this.initialLocation});
@@ -359,3 +366,4 @@ class MapPickerScreen extends StatelessWidget {
     );
   }
 }
+*/

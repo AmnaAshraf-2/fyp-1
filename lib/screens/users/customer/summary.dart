@@ -71,7 +71,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                         'Not selected',
                   ),
                   _buildSummaryItem(
-                      'Offer Fare', 'Rs ${_currentDetails.offerFare}'),
+                      'Offered Fare', 'Rs ${_currentDetails.offerFare}'),
                   _buildSummaryItem(
                     'Insurance Status',
                     _currentDetails.isInsured ? 'Insured' : 'Uninsured',
@@ -93,7 +93,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 );
                 Navigator.popUntil(context, (route) => route.isFirst);
               },
-              child: const Text("Proceed with Booking"),
+              child: const Text("Send Request"),
             ),
           ],
         ),
@@ -102,11 +102,12 @@ class _SummaryScreenState extends State<SummaryScreen> {
   }
 
   Widget _buildSummaryItem(String title, String value) {
-    return ListTile(
-      title: Text(title),
-      subtitle: Text(value),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: _editDetails,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Text(
+        "$title: $value",
+        style: const TextStyle(fontSize: 16),
+      ),
     );
   }
 }
