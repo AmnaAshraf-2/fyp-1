@@ -1,25 +1,48 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:logistics_app/data/modals.dart';
 import 'package:logistics_app/screens/language.dart';
 import 'package:logistics_app/screens/login.dart';
+import 'package:logistics_app/screens/password.dart';
+import 'package:logistics_app/screens/reg.dart';
 import 'package:logistics_app/screens/role.dart';
+import 'package:logistics_app/screens/users/customer/cargoDetails.dart';
+import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
+import 'package:logistics_app/screens/users/customer/newBooking.dart';
+import 'package:logistics_app/screens/users/customer/upcoming_bookings.dart';
+import 'package:logistics_app/screens/users/customer/customer_notifications.dart';
+// import 'package:logistics_app/screens/users/customer/profile.dart';
+// import 'package:logistics_app/screens/users/customer/settings.dart';
+// import 'package:logistics_app/screens/users/customer/support.dart';
+// import 'package:logistics_app/screens/users/customer/about.dart';
+// import 'package:logistics_app/screens/users/customer/history.dart';
+import 'package:logistics_app/screens/users/driver/driver_registration.dart';
+import 'package:logistics_app/screens/users/driver/drivers.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise_details.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise_dashboard.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise_new_offers.dart';
+import 'package:logistics_app/screens/users/enterprise/shareholder_details.dart';
 import 'package:logistics_app/splash/splashscreen.dart';
+import 'package:logistics_app/splash/welcome.dart';
 import 'package:logistics_app/widgets/themes.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logistics_app/screens/users/driver/vehicle_info_page.dart';
+import 'package:logistics_app/screens/users/customer/summary.dart';
+import 'package:logistics_app/data/modals.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Firebase.initializeApp(
+  await Firebase.initializeApp(
       options: FirebaseOptions(
-          apiKey: "AIzaSyDWpUIrQ4VwjiN9EE06zYPoQxg15Hvmbuc",
+          apiKey: "AIzaSyAJMxGoUZZWjgfFtfXAADRzryzVug96vZM",
           authDomain: "fyp-1-2dbaf.firebaseapp.com",
           databaseURL: "https://fyp-1-2dbaf-default-rtdb.firebaseio.com",
           projectId: "fyp-1-2dbaf",
           storageBucket: "fyp-1-2dbaf.firebasestorage.app",
           messagingSenderId: "798522688381",
-          appId: "1:798522688381:web:54e364753fbc170ef00214"));
+          appId: "1:798522688381:android:9d187b0588785cdaf00214"));
   runApp(const MyApp());
 }
 
@@ -61,23 +84,80 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Logistics App',
       locale: _locale,
       themeMode: ThemeMode.system,
       theme: MyTheme.lightTheme,
       darkTheme: MyTheme.darkTheme,
       debugShowCheckedModeBanner: false,
-      localizationsDelegates: [
+      localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
         Locale('en'),
         Locale('ur'),
         Locale('ps'),
       ],
-      home: const login(),
+      initialRoute: '/',
+      routes: {
+        //splash
+        '/': (context) => const Splashscreen(),
+        //'/splash': (context) => const Splashscreen(),
+        '/language': (context) => const LanguageSettingsScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/Password': (context) => const ForgotPasswordScreen(),
+        '/welcome': (context) => const WelcomeScreen(),
+        '/role': (context) => const RoleScreen(),
+        '/customerDashboard': (context) => const CustomerDashboard(),
+        '/driverDashboard': (context) => const DriversScreen(),
+        '/enterpriseDashboard': (context) => const EnterpriseDashboard(),
+        '/newBookings': (context) => const NewBookingsScreen(),
+        '/upcomingBookings': (context) => const UpcomingBookingsScreen(),
+        '/pastBookings': (context) =>
+            const UpcomingBookingsScreen(), // Using same screen for now
+        '/customerNotifications': (context) =>
+            const CustomerNotificationsScreen(),
+        '/cargo-details': (context) => const CargoDetailsScreen(),
+        '/summary': (context) => SummaryScreen(
+              initialDetails: CargoDetails(
+                loadName: 'Sample Load',
+                loadType: 'General',
+                weight: 1000.0,
+                quantity: 1,
+                offerFare: 5000.0,
+                isInsured: true,
+                weightUnit: '',
+                vehicleType: '',
+                senderPhone: '',
+                receiverPhone: '',
+                pickupLocation: '',
+                destinationLocation: '',
+              ),
+            ),
+        '/driver-registration': (context) => const DriverRegistration(),
+        '/vehicle-info': (context) => VehicleInfoPage(
+              cnic: '',
+              license: '',
+              phone: '',
+            ),
+        // // Customer screens
+        // '/profile': (context) => const CustomerProfileScreen(),
+        // '/settings': (context) => const CustomerSettingsScreen(),
+        // '/support': (context) => const CustomerSupportScreen(),
+        // '/about': (context) => const AboutScreen(),
+        // '/history': (context) => const CustomerHistoryScreen(),
+        '/enterprise-registration': (context) =>
+            const EnterpriseDetailsScreen(),
+        '/enterprise-dashboard': (context) => const EnterpriseDashboard(),
+        '/enterprise-details': (context) => const EnterpriseDetailsScreen(),
+        '/enterprise-new-offers': (context) =>
+            const EnterpriseNewOffersScreen(),
+        //'/enterprise-profile': (context) => const EnterpriseProfileScreen(),
+      },
     );
   }
 }

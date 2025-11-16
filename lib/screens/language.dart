@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:logistics_app/main.dart';
 import 'package:logistics_app/screens/role.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class LanguageSettingsScreen extends StatefulWidget {
   const LanguageSettingsScreen({super.key});
@@ -43,68 +41,108 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     if (_selectedLanguageCode != null) {
       await _saveLanguage(_selectedLanguageCode!);
       Locale newLocale = Locale(_selectedLanguageCode!);
-      // Rebuild app with new locale
       MyApp.setLocale(context, newLocale);
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => RoleScreen()));
+        context,
+        MaterialPageRoute(builder: (_) => const RoleScreen()),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-          title: Center(
-        child: Text(
-          "Choose Language",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/p.jpg'),
+            fit: BoxFit.cover,
+          ),
         ),
-      )),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CheckboxListTile(
-                      title: const Text("English"),
-                      value: _selectedLanguageCode == 'en',
-                      onChanged: (_) => _onLanguageSelected('en'),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.5), // Higher opacity than login (0.5 vs 0.4)
+          ),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  
+                  Text(
+                    "Choose Language",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
                     ),
-                    CheckboxListTile(
-                      title: const Text("اردو"),
-                      value: _selectedLanguageCode == 'ur',
-                      onChanged: (_) => _onLanguageSelected('ur'),
+                  ),
+                  const SizedBox(height: 30),
+                  Card(
+                    color: Colors.white,
+                    elevation: 10,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    CheckboxListTile(
-                      title: const Text("پښتو"),
-                      value: _selectedLanguageCode == 'ps',
-                      onChanged: (_) => _onLanguageSelected('ps'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(25),
+                      child: Column(
+                        children: [
+                          _buildLanguageTile('English', 'en'),
+                          const Divider(height: 30, color: Color(0xFF004d4d)),
+                          _buildLanguageTile('اردو', 'ur'),
+                          const Divider(height: 30, color: Color(0xFF004d4d)),
+                          _buildLanguageTile('پښتو', 'ps'),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed: _proceed,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 15, horizontal: 40),
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF004d4d),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'PROCEED',
+                      style: TextStyle(fontSize: 18, color: Color(0xFF004d4d), fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _proceed,
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
-              ),
-              child: const Text("Proceed"),
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageTile(String language, String code) {
+    return ListTile(
+      title: Text(
+        language,
+        style: TextStyle(
+          fontSize: 18,
+          color: const Color(0xFF004d4d),
+        ),
+      ),
+      leading: Radio<String>(
+        value: code,
+        groupValue: _selectedLanguageCode,
+        activeColor: const Color(0xFF004d4d),
+        onChanged: (value) => _onLanguageSelected(value!),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
       ),
     );
   }
