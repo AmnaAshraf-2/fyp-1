@@ -259,9 +259,281 @@
   "pleaseEnterValidEmail": "براہ کرم درست ای میل ایڈریس درج کریں",
   "noUpcomingBookings": "کوئی آنے والی بکنگ نہیں",
   "findNewDriver": "نیا ڈرائیور تلاش کریں",
+  "areYouSureFindNewDriver": "کیا آپ واقعی اس درخواست کے لیے نیا ڈرائیور تلاش کرنا چاہتے ہیں؟",
+  "customerCancelledToFindNewDriver": "کسٹمر نے نیا ڈرائیور تلاش کرنے کے لیے درخواست منسوخ کر دی",
+  "findingNewDriver": "نیا ڈرائیور تلاش کیا جا رہا ہے...",
+  "cannotMakeCall": "{phoneNumber} پر کال نہیں کر سکتے",
+  "@cannotMakeCall": {
+    "placeholders": {
+      "phoneNumber": {
+        "type": "String"
+      }
+    }
+  },
   "senderPhoneNumber": "بھیجنے والے کا فون نمبر",
   "receiverPhoneNumber": "وصول کنندہ کا فون نمبر",
   "pickupLocation": "پک اپ لوکیشن",
-  "destinationLocation": "منزل کا مقام"
+  "destinationLocation": "منزل کا مقام",
+  
+  "guestDriver": "مہمان ڈرائیور",
+  "upcomingTrips": "آنے والے سفر",
+  "pastTrips": "گزشتہ سفر",
+  
+  "notifications": "اطلاعات",
+  "noNotifications": "کوئی اطلاع نہیں",
+  "allNotificationsCleared": "تمام اطلاعات صاف کر دی گئیں",
+  "errorClearingNotifications": "اطلاعات صاف کرنے میں خرابی",
+  "unknownTime": "نامعلوم وقت",
+  "justNow": "ابھی ابھی",
+  "dayAgo": "دن پہلے",
+  "daysAgo": "دن پہلے",
+  "hourAgo": "گھنٹہ پہلے",
+  "hoursAgo": "گھنٹے پہلے",
+  "minuteAgo": "منٹ پہلے",
+  "minutesAgo": "منٹ پہلے",
+  "startJourney": "سفر شروع کریں",
+  "areYouSureStartJourney": "کیا آپ واقعی یہ سفر شروع کرنا چاہتے ہیں؟",
+  "journeyStartedSuccessfully": "سفر کامیابی سے شروع ہو گیا",
+  "errorStartingJourney": "سفر شروع کرنے میں خرابی",
+  "completeJourney": "سفر مکمل کریں",
+  "areYouSureCompleteJourney": "کیا آپ واقعی یہ سفر مکمل کرنا چاہتے ہیں؟",
+  "journeyCompletedSuccessfully": "سفر کامیابی سے مکمل ہو گیا",
+  "errorCompletingJourney": "سفر مکمل کرنے میں خرابی",
+  "tripDetails": "سفر کی تفصیلات",
+  "routeInformation": "راستے کی معلومات",
+  "loadName": "سامان کا نام",
+  "loadType": "سامان کی قسم",
+  "vehicleType": "گاڑی کی قسم",
+  "pickupDate": "پک اپ کی تاریخ",
+  "pickupTime": "پک اپ کا وقت",
+  "pleaseEnterValidFareAmount": "براہ کرم درست کرایہ کی رقم درج کریں",
+  "refresh": "تازہ کریں",
+  "viewRouteOnMap": "نقشے پر راستہ دیکھیں",
+  
+  "liveTracking": "لائیو ٹریکنگ",
+  "destination": "منزل",
+  "driverLocation": "ڈرائیور کا مقام",
+  "errorLoadingMap": "نقشہ لوڈ کرنے میں خرابی",
+  "waitingForDriverLocation": "ڈرائیور کے مقام کا انتظار...",
+  "noAddressProvided": "کوئی پتہ فراہم نہیں کیا گیا",
+  "locationNotFound": "اس پتے کے لیے مقام نہیں ملا",
+  "errorFindingLocation": "مقام تلاش کرنے میں خرابی",
+  "goBack": "واپس جائیں",
+  "chooseLocationOnMap": "نقشے پر مقام منتخب کریں",
+  "unableToLoadMap": "نقشہ لوڈ نہیں ہو سکا",
+  "tapMapToSelectLocation": "مقام منتخب کرنے کے لیے نقشے پر ٹیپ کریں",
+  "waitForAddressOrConfirm": "براہ کرم پتہ لوڈ ہونے کا انتظار کریں، یا کوآرڈینیٹس استعمال کرنے کے لیے تصدیق پر ٹیپ کریں",
+  "confirm": "تصدیق کریں",
+  "selectedLocation": "منتخب شدہ مقام",
+  "loadingAddress": "پتہ لوڈ ہو رہا ہے...",
+  "coordinates": "کوآرڈینیٹس",
+  "couldNotGetAddress": "اس مقام کے لیے پتہ نہیں مل سکا",
+  "mapLoadingTimeout": "نقشہ لوڈ ہونے میں توقع سے زیادہ وقت لگ رہا ہے۔ براہ کرم اپنا انٹرنیٹ کنکشن اور Google Maps API key چیک کریں۔",
+  "routeMap": "راستے کا نقشہ",
+  "route": "راستہ",
+  "pickup": "پک اپ",
+  
+  "directEnterpriseOffer": "براہ راست ادارہ کی پیشکش",
+  "driverOffer": "ڈرائیور کی پیشکش",
+  "enterpriseUser": "ادارہ کا صارف",
+  "keyMetrics": "اہم پیمائشیں",
+  "totalVehicles": "کل گاڑیاں",
+  "totalDrivers": "کل ڈرائیور",
+  "activeBookings": "فعال بکنگز",
+  "pendingOffers": "زیر التواء پیشکشیں",
+  "bookings": "بکنگز",
+  "viewActiveBookings": "فعال بکنگز دیکھیں",
+  "newTab": "نیا",
+  "active": "فعال",
+  "pending": "زیر التواء",
+  "activeBookingsTitle": "فعال بکنگز",
+  "activeBookingsSubtitle": "فی الحال فعال بکنگز یہاں ظاہر ہوں گی",
+  "pendingBookingsTitle": "زیر التواء بکنگز",
+  "pendingBookingsSubtitle": "زیر التواء بکنگ کی تصدیقات یہاں ظاہر ہوں گی",
+  "profileSettings": "پروفائل اور ترتیبات",
+  "ceo": "سی ای او",
+  "managingDirector": "منیجنگ ڈائریکٹر",
+  "director": "ڈائریکٹر",
+  "shareholder": "حصہ دار",
+  "partner": "شراکت دار",
+  "other": "دیگر",
+  "soleProprietorship": "واحد مالکیت",
+  "partnership": "شراکت",
+  "governmentEntity": "حکومتی ادارہ",
+  "years": "سال",
+  "privateLimitedCompany": "پرائیویٹ لمیٹڈ کمپنی",
+  "publicLimitedCompany": "پبلک لمیٹڈ کمپنی",
+  "nonProfitOrganization": "غیر منفعتی تنظیم",
+  "offerSentToCustomer": "پیشکش کسٹمر کو بھیج دی گئی",
+  "guestUser": "مہمان صارف",
+  "bookYourCargo": "اپنا کارگو بک کریں",
+  "trackYourCargo": "اپنا کارگو ٹریک کریں",
+  "scheduledBookings": "شیڈول شدہ بکنگز",
+  
+  "cargoDetailsSection": "کارگو کی تفصیلات",
+  "weightVehicleSection": "وزن اور گاڑی",
+  "contactDetailsSection": "رابطے کی تفصیلات",
+  "locationsSection": "مقامات",
+  "scheduleSection": "شیڈول",
+  "fareInsuranceSection": "کرایہ اور انشورنس",
+  "capacityStatus": "گنجائش کی حیثیت",
+  "phoneNumberExample": "مثال: 03001234567",
+  "phoneNumberFormat": "فارمیٹ: 03XX-XXXXXXX یا 0XXX-XXXXXXX",
+  "selectFromContacts": "رابطوں سے منتخب کریں",
+  "phoneNumberRequired": "فون نمبر درکار ہے",
+  "phoneNumberOnlyDigits": "فون نمبر میں صرف ہندسے ہونے چاہئیں",
+  "phoneNumberMustStartWith0": "فون نمبر 0 سے شروع ہونا چاہیے",
+  "phoneNumberMustBe11Digits": "فون نمبر بالکل 11 ہندسے کا ہونا چاہیے (مثال: 03001234567)",
+  "invalidMobilePrefix03XX": "غلط موبائل نمبر سابقہ۔ 03XX ہونا چاہیے (مثال: 0300-0399)",
+  "invalidMobilePrefix04XX": "غلط موبائل نمبر سابقہ۔ 04XX ہونا چاہیے (مثال: 0400-0499)",
+  "invalidMobilePrefix05XX": "غلط موبائل نمبر سابقہ۔ 05XX ہونا چاہیے (مثال: 0500-0599)",
+  "invalidPhoneFormat": "غلط فون نمبر فارمیٹ۔ موبائل نمبروں کے لیے 03، 04، یا 05 سے شروع ہونا چاہیے",
+  "invalidPhoneFormatAfterPrefix": "غلط فون نمبر فارمیٹ۔ سابقہ کے بعد 7 ہندسے ہونے چاہئیں",
+  "phoneNumberAllSameDigits": "فون نمبر غلط لگ رہا ہے (تمام ہندسے ایک جیسے ہیں)",
+  "phoneNumberInvalid": "فون نمبر غلط لگ رہا ہے",
+  "tapToChooseLocation": "مقام منتخب کرنے کے لیے ٹیپ کریں",
+  "pickupDateNotSelected": "پک اپ کی تاریخ: منتخب نہیں",
+  "pickupDate": "پک اپ کی تاریخ",
+  "selectDate": "تاریخ منتخب کریں",
+  "pleaseEnterValidWeight": "براہ کرم درست وزن درج کریں",
+  "weightExceedsCapacity": "وزن گنجائش سے زیادہ ہے!",
+  "requiredVehicles": "درکار",
+  "currentVehicles": "موجودہ",
+  "weightExceedsSingleVehicle": "وزن ایک گاڑی کی گنجائش سے زیادہ ہے۔ مقدار خود بخود {requiredVehicles} گاڑی(وں) پر سیٹ کر دی گئی",
+  "@weightExceedsSingleVehicle": {
+    "placeholders": {
+      "requiredVehicles": {
+        "type": "String"
+      }
+    }
+  },
+  "weightExceedsCapacityAutoUpdate": "وزن گنجائش سے زیادہ ہے! {requiredVehicles} گاڑی(وں) کی ضرورت ہے لیکن صرف {quantity} منتخب کی گئی۔ مقدار خود بخود اپ ڈیٹ ہو جائے گی۔",
+  "@weightExceedsCapacityAutoUpdate": {
+    "placeholders": {
+      "requiredVehicles": {
+        "type": "String"
+      },
+      "quantity": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseEnterValidQuantity": "براہ کرم درست مقدار درج کریں (کم از کم 1)",
+  "fare": "کرایہ",
+  "pleaseEnterFareAmount": "براہ کرم کرایہ کی رقم درج کریں",
+  "pleaseEnterValidAmount": "براہ کرم درست رقم درج کریں",
+  "contactsPermissionDenied": "رابطوں کی اجازت مسترد کر دی گئی",
+  "exceedsCapacityNeed": "گنجائش سے زیادہ! ضرورت",
+  "vehicles": "گاڑی(وں)",
+  "kg": "کلوگرام",
+  "tons": "ٹن",
+  "approachingCapacityLimit": "گنجائش کی حد کے قریب۔ کل گنجائش",
+  "totalCapacity": "کل گنجائش",
+  "remaining": "باقی",
+  "maximumCapacity": "زیادہ سے زیادہ گنجائش",
+  "noResponseReceived": "کوئی جواب موصول نہیں ہوا",
+  "noDriversResponded": "پچھلے 2 منٹ میں کسی ڈرائیور یا انٹرپرائز نے آپ کے درخواست کا جواب نہیں دیا۔",
+  "increaseFare": "آپ زیادہ ردعمل حاصل کرنے کے لیے کرایہ بڑھا سکتے ہیں:",
+  "newFareAmount": "نیا کرایہ کی رقم",
+  "updateFareResend": "کرایہ اپ ڈیٹ کریں اور دوبارہ بھیجیں",
+  "requestResent": "درخواست اپ ڈیٹ شدہ کرایہ کے ساتھ دوبارہ بھیجی گئی: روپے {fare}",
+  "@requestResent": {
+    "placeholders": {
+      "fare": {
+        "type": "String"
+      }
+    }
+  },
+  "errorResending": "درخواست دوبارہ بھیجنے میں خرابی",
+  "errorCancelling": "درخواست منسوخ کرنے میں خرابی",
+  "errorLoadingData": "ڈیٹا لوڈ کرنے میں خرابی:",
+  "errorFindingNewDriver": "نیا ڈرائیور تلاش کرنے میں خرابی:",
+  "customerCancelledRequest": "کسٹمر نے درخواست منسوخ کر دی",
+  "requestAcceptedByDriver": "آپ کی درخواست ایک ڈرائیور نے قبول کر لی ہے!",
+  "requestAcceptedByEnterprise": "آپ کی درخواست ایک انٹرپرائز نے قبول کر لی ہے!",
+  "viewBookings": "بکنگز دیکھیں",
+  "accepted": "قبول شدہ",
+  "counter": "کاؤنٹر",
+  "unknown": "نامعلوم",
+  "loadDetails": "لوڈ کی تفصیلات",
+  "contactDetails": "رابطے کی تفصیلات",
+  "scheduleFare": "شیڈول اور کرایہ",
+  "notSpecified": "متعلق نہیں",
+  "selectRequestType": "درخواست کی قسم منتخب کریں",
+  "youNeedVehicles": "آپ کو {quantity} گاڑیوں کی ضرورت ہے۔ کیا آپ یہ درخواست انفرادی ڈرائیورز یا انٹرپرائزز کو بھیجنا چاہتے ہیں؟",
+  "@youNeedVehicles": {
+    "placeholders": {
+      "quantity": {
+        "type": "String"
+      }
+    }
+  },
+  "sendToDrivers": "ڈرائیورز کو بھیجیں",
+  "sendToEnterprise": "انٹرپرائز کو بھیجیں",
+  "pleaseEnsureLocations": "براہ کرم یقینی بنائیں کہ پک اپ اور منزل دونوں مقامات متعین ہیں",
+  "requestSentToDrivers": "{vehicleType} گاڑیوں والے ڈرائیورز کو درخواست بھیجی گئی",
+  "@requestSentToDrivers": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "requestSentToEnterprises": "{vehicleType} گاڑیوں والے انٹرپرائزز کو درخواست بھیجی گئی",
+  "@requestSentToEnterprises": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "requestSentToBoth": "{vehicleType} گاڑیوں والے ڈرائیورز اور انٹرپرائزز کو درخواست بھیجی گئی",
+  "@requestSentToBoth": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "drivers": "ڈرائیور",
+  "manageLogisticsOperations": "اپنے لاجسٹکس آپریشنز کو موثر طریقے سے منظم کریں",
+  "viewNewOffers": "نئی پیشکشیں دیکھیں",
+  "userNotLoggedIn": "صارف لاگ ان نہیں ہے",
+  "errorSwitchingRole": "کردار تبدیل کرنے میں خرابی: {error}",
+  "@errorSwitchingRole": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "profileComingSoon": "پروفائل - جلد آرہا ہے",
+  "settingsComingSoon": "ترتیبات - جلد آرہا ہے",
+  "supportComingSoon": "سپورٹ - جلد آرہا ہے",
+  "aboutComingSoon": "کے بارے میں - جلد آرہا ہے",
+  "searchForLocation": "کسی مقام کی تلاش کریں...",
+  "nearestPlaces": "قریبی مقامات",
+  "searchResults": "تلاش کے نتائج",
+  "startTypingToSearch": "مقامات تلاش کرنے کے لیے ٹائپ کرنا شروع کریں",
+  "noSuggestionsFound": "کوئی تجاویز نہیں ملیں۔ \"نقشے پر منتخب کریں\" استعمال کریں یا مکمل پتہ ٹائپ کریں۔",
+  "tapToUseAddress": "اس پتے کو استعمال کرنے کے لیے ٹیپ کریں",
+  "errorSearchingPlaces": "مقامات تلاش کرنے میں خرابی: {error}",
+  "@errorSearchingPlaces": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotGetPlaceDetails": "مقام کی تفصیلات حاصل نہیں ہو سکیں۔ براہ کرم \"نقشے پر منتخب کریں\" استعمال کریں۔",
+  "errorGettingPlaceDetails": "مقام کی تفصیلات حاصل کرنے میں خرابی: {error}",
+  "@errorGettingPlaceDetails": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseSelectOrEnterLocation": "براہ کرم کوئی مقام منتخب کریں یا درج کریں"
 }
 

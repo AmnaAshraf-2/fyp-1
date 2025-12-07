@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:logistics_app/data/vehicles.dart';
+import 'package:logistics_app/services/vehicle_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logistics_app/main.dart';
+
+// Teal color palette
+const kTealDark = Color(0xFF004D4D);
+const kTeal = Color(0xFF007D7D);
+const kTealLight = Color(0xFFB2DFDB);
+const kTealBg = Color(0xFFE0F2F1);
 
 class EnterpriseVehicleManagement extends StatefulWidget {
   const EnterpriseVehicleManagement({super.key});
@@ -14,14 +22,70 @@ class EnterpriseVehicleManagement extends StatefulWidget {
 class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagement> {
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseDatabase.instance.ref();
+  final VehicleProvider _vehicleProvider = VehicleProvider();
   
   bool _isLoading = true;
   List<Map<String, dynamic>> _vehicles = [];
+  List<VehicleModel> _vehicleTypes = [];
+  bool _isLoadingVehicleTypes = true;
+  String _languageCode = 'en';
 
   @override
   void initState() {
     super.initState();
     _loadVehicles();
+    _loadVehicleTypes();
+    _loadLanguageCode();
+    // Listen to locale changes
+    localeNotifier?.addListener(_onLocaleChanged);
+  }
+
+  @override
+  void dispose() {
+    localeNotifier?.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
+
+  void _onLocaleChanged() {
+    _loadLanguageCode();
+  }
+
+  Future<void> _loadLanguageCode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final user = FirebaseAuth.instance.currentUser;
+      String code = 'en';
+      if (user != null) {
+        code = prefs.getString('languageCode_${user.uid}') ?? 'en';
+      } else {
+        code = prefs.getString('languageCode') ?? 'en';
+      }
+      if (mounted) {
+        setState(() {
+          _languageCode = code;
+        });
+      }
+    } catch (e) {
+      // Default to English
+    }
+  }
+
+  Future<void> _loadVehicleTypes() async {
+    try {
+      final vehicles = await _vehicleProvider.loadVehicles();
+      if (mounted) {
+        setState(() {
+          _vehicleTypes = vehicles;
+          _isLoadingVehicleTypes = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingVehicleTypes = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadVehicles() async {
@@ -52,6 +116,7 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
 
   Future<void> _addVehicle() async {
     final t = AppLocalizations.of(context)!;
+    final languageCode = _languageCode; // Capture current language code
     
     final TextEditingController makeModelController = TextEditingController();
     final TextEditingController registrationController = TextEditingController();
@@ -107,12 +172,14 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                     labelText: t.vehicleType,
                     border: const OutlineInputBorder(),
                   ),
-                  items: vehicleList
-                      .map((v) => DropdownMenuItem<String>(
-                            value: v.getName(t),
-                            child: Text("${v.getName(t)} (${v.getCapacity(t)})"),
-                          ))
-                      .toList(),
+                  items: _isLoadingVehicleTypes
+                      ? [const DropdownMenuItem<String>(value: null, child: Text('Loading...'))]
+                      : _vehicleTypes
+                          .map((v) => DropdownMenuItem<String>(
+                                value: v.getName(languageCode),
+                                child: Text("${v.getName(languageCode)} (${v.getCapacity(languageCode)})"),
+                              ))
+                          .toList(),
                   onChanged: (String? newValue) {
                     setDialogState(() {
                       selectedType = newValue!;
@@ -152,6 +219,7 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
         'capacity': capacityController.text,
         'type': selectedType ?? 'Unknown',
         'addedAt': DateTime.now().millisecondsSinceEpoch,
+        'status': 'active', // Default to active when adding
       });
     }
   }
@@ -170,8 +238,35 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
 
       _loadVehicles();
     } catch (e) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('${t.error}: $e')),
+      );
+    }
+  }
+
+  Future<void> _toggleVehicleStatus(String vehicleId, bool isActive) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final newStatus = isActive ? 'active' : 'inactive';
+      await _db.child('users/${user.uid}/vehicles/$vehicleId').update({
+        'status': newStatus,
+        'statusUpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Vehicle status changed to ${newStatus}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      _loadVehicles();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating vehicle status: $e')),
       );
     }
   }
@@ -212,7 +307,7 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
         _loadVehicles();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${t.error}: $e')),
         );
       }
     }
@@ -223,22 +318,43 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
     final t = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(t.vehicleManagement, style: const TextStyle(color: Color(0xFF004d4d))),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF004d4d)),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1a1a1a), Color(0xFF2d2d2d)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
               children: [
                 // Header
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.green.shade50,
+                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                  margin: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [kTeal, kTealDark],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(.1),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -249,7 +365,7 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                             t.totalVehicles,
                             style: const TextStyle(
                               fontSize: 16,
-                              color: Color(0xFF004d4d),
+                              color: Colors.white,
                             ),
                           ),
                           Text(
@@ -257,7 +373,7 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF004d4d),
+                              color: Colors.white,
                             ),
                           ),
                         ],
@@ -267,7 +383,7 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                         icon: const Icon(Icons.add),
                         label: Text(t.addVehicle),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: Colors.green.shade700,
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -292,15 +408,15 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                                 t.noVehiclesFound,
                                 style: const TextStyle(
                                   fontSize: 18,
-                                  color: Color(0xFF004d4d),
+                                  color: Colors.white,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 t.addYourFirstVehicle,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
-                                  color: Color(0xFF004d4d),
+                                  color: Colors.white.withOpacity(.8),
                                 ),
                               ),
                             ],
@@ -311,31 +427,82 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                           itemCount: _vehicles.length,
                           itemBuilder: (context, index) {
                             final vehicle = _vehicles[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [kTeal, kTealDark],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(.1),
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  )
+                                ],
+                              ),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: Colors.green.shade100,
+                                  backgroundColor: Colors.green.shade700.withOpacity(.3),
                                   child: Icon(
                                     Icons.local_shipping,
-                                    color: Colors.green,
+                                    color: Colors.white,
                                   ),
                                 ),
                                 title: Text(
                                   vehicle['makeModel'] ?? 'Unknown',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF004d4d)),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('${t.registrationNumber}: ${vehicle['registrationNumber'] ?? 'N/A'}', style: const TextStyle(color: Color(0xFF004d4d))),
-                                    Text('${t.type}: ${vehicle['type'] ?? 'N/A'}', style: const TextStyle(color: Color(0xFF004d4d))),
-                                    Text('${t.capacity}: ${vehicle['capacity'] ?? 'N/A'} kg', style: const TextStyle(color: Color(0xFF004d4d))),
+                                    Text('${t.registrationNumber}: ${vehicle['registrationNumber'] ?? 'N/A'}', style: TextStyle(color: Colors.white.withOpacity(.9))),
+                                    Text('${t.type}: ${vehicle['type'] ?? 'N/A'}', style: TextStyle(color: Colors.white.withOpacity(.9))),
+                                    Text('${t.capacity}: ${vehicle['capacity'] ?? 'N/A'} kg', style: TextStyle(color: Colors.white.withOpacity(.9))),
                                   ],
                                 ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _deleteVehicle(vehicle['id']),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Status Toggle Switch
+                                    Switch(
+                                      value: (vehicle['status'] ?? 'inactive') == 'active',
+                                      onChanged: (value) => _toggleVehicleStatus(vehicle['id'], value),
+                                      activeColor: Colors.green,
+                                      inactiveThumbColor: Colors.red,
+                                      inactiveTrackColor: Colors.red.withOpacity(0.5),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // Status Badge
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: vehicle['status'] == 'active' ? Colors.green : Colors.red,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        vehicle['status'] == 'active' ? 'Active' : 'Inactive',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () => _deleteVehicle(vehicle['id']),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );
@@ -344,6 +511,30 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                 ),
               ],
             ),
+        ),
+      ),
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1a1a1a), Color(0xFF2d2d2d)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          t.vehicles,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
+      ),
     );
   }
 }

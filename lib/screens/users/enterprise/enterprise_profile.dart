@@ -11,7 +11,7 @@ class EnterpriseProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Profile & Settings', style: TextStyle(color: Color(0xFF004d4d))),
+        title: Text(AppLocalizations.of(context)!.profileSettings, style: const TextStyle(color: Color(0xFF004d4d))),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF004d4d)),

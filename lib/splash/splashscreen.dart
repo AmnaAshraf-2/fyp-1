@@ -109,7 +109,7 @@ class _SplashscreenState extends State<Splashscreen> with TickerProviderStateMix
                     ),
                     SizedBox(height: 8),
                     Text(
-                      "CALCULATE EVERY LOAD",
+                      "MULTI-LINGUAL LOGISTICS MANAGEMENT SYSTEM",
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.white70,

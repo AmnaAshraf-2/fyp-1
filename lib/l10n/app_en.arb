@@ -356,10 +356,283 @@
   "driverDescription": "Order directly from individual drivers for quick and flexible transportation",
   "noUpcomingBookings": "No upcoming bookings",
   "findNewDriver": "Find New Driver",
+  "areYouSureFindNewDriver": "Are you sure you want to find a new driver for this request?",
+  "customerCancelledToFindNewDriver": "Customer cancelled the request to find a new driver",
+  "findingNewDriver": "Finding new driver...",
+  "cannotMakeCall": "Cannot make call to {phoneNumber}",
+  "@cannotMakeCall": {
+    "placeholders": {
+      "phoneNumber": {
+        "type": "String"
+      }
+    }
+  },
   "senderPhoneNumber": "Sender Phone Number",
   "receiverPhoneNumber": "Receiver Phone Number",
   "pickupLocation": "Pickup Location",
-  "destinationLocation": "Destination Location"
+  "destinationLocation": "Destination Location",
+  
+  "guestDriver": "Guest Driver",
+  "upcomingTrips": "Upcoming Trips",
+  "pastTrips": "Past Trips",
+  
+  "notifications": "Notifications",
+  "noNotifications": "No notifications",
+  "allNotificationsCleared": "All notifications cleared",
+  "errorClearingNotifications": "Error clearing notifications",
+  "unknownTime": "Unknown time",
+  "justNow": "Just now",
+  "dayAgo": "day ago",
+  "daysAgo": "days ago",
+  "hourAgo": "hour ago",
+  "hoursAgo": "hours ago",
+  "minuteAgo": "minute ago",
+  "minutesAgo": "minutes ago",
+  "startJourney": "Start Journey",
+  "areYouSureStartJourney": "Are you sure you want to start this journey?",
+  "journeyStartedSuccessfully": "Journey started successfully",
+  "errorStartingJourney": "Error starting journey",
+  "completeJourney": "Complete Journey",
+  "areYouSureCompleteJourney": "Are you sure you want to complete this journey?",
+  "journeyCompletedSuccessfully": "Journey completed successfully",
+  "errorCompletingJourney": "Error completing journey",
+  "tripDetails": "Trip Details",
+  "routeInformation": "Route Information",
+  "loadName": "Load Name",
+  "loadType": "Load Type",
+  "vehicleType": "Vehicle Type",
+  "pickupDate": "Pickup Date",
+  "pickupTime": "Pickup Time",
+  "pleaseEnterValidFareAmount": "Please enter a valid fare amount",
+  "refresh": "Refresh",
+  "viewRouteOnMap": "View Route on Map",
+  
+  "liveTracking": "Live Tracking",
+  "destination": "Destination",
+  "driverLocation": "Driver Location",
+  "errorLoadingMap": "Error loading map",
+  "waitingForDriverLocation": "Waiting for driver location...",
+  "noAddressProvided": "No address provided",
+  "locationNotFound": "Location not found for this address",
+  "errorFindingLocation": "Error finding location",
+  "goBack": "Go Back",
+  "chooseLocationOnMap": "Choose Location on Map",
+  "unableToLoadMap": "Unable to load map",
+  "tapMapToSelectLocation": "Tap on the map to select a location",
+  "waitForAddressOrConfirm": "Please wait for address to load, or tap Confirm anyway to use coordinates",
+  "confirm": "Confirm",
+  "selectedLocation": "Selected Location",
+  "loadingAddress": "Loading address...",
+  "coordinates": "Coordinates",
+  "couldNotGetAddress": "Could not get address for this location",
+  "mapLoadingTimeout": "Map is taking longer than expected to load. Please check your internet connection and Google Maps API key.",
+  "routeMap": "Route Map",
+  "route": "Route",
+  "pickup": "Pickup",
+  
+  "directEnterpriseOffer": "Direct Enterprise Offer",
+  "driverOffer": "Driver Offer",
+  "enterpriseUser": "Enterprise User",
+  "keyMetrics": "Key Metrics",
+  "totalVehicles": "Total Vehicles",
+  "totalDrivers": "Total Drivers",
+  "activeBookings": "Active Bookings",
+  "pendingOffers": "Pending Offers",
+  "bookings": "Bookings",
+  "viewActiveBookings": "View active bookings",
+  "newTab": "New",
+  "active": "Active",
+  "pending": "Pending",
+  "activeBookingsTitle": "Active Bookings",
+  "activeBookingsSubtitle": "Currently active bookings will appear here",
+  "pendingBookingsTitle": "Pending Bookings",
+  "pendingBookingsSubtitle": "Pending booking confirmations will appear here",
+  "profileSettings": "Profile & Settings",
+  "ceo": "CEO",
+  "managingDirector": "Managing Director",
+  "director": "Director",
+  "shareholder": "Shareholder",
+  "partner": "Partner",
+  "other": "Other",
+  "soleProprietorship": "Sole Proprietorship",
+  "partnership": "Partnership",
+  "governmentEntity": "Government Entity",
+  "years": "years",
+  "privateLimitedCompany": "Private Limited Company",
+  "publicLimitedCompany": "Public Limited Company",
+  "nonProfitOrganization": "Non-Profit Organization",
+  "offerSentToCustomer": "Offer sent to customer",
+  "guestUser": "Guest User",
+  "bookYourCargo": "Book Your Cargo",
+  "trackYourCargo": "Track Your Cargo",
+  "scheduledBookings": "Scheduled Bookings",
+  
+  "cargoDetailsSection": "Cargo Details",
+  "weightVehicleSection": "Weight & Vehicle",
+  "contactDetailsSection": "Contact Details",
+  "locationsSection": "Locations",
+  "scheduleSection": "Schedule",
+  "fareInsuranceSection": "Fare & Insurance",
+  "capacityStatus": "Capacity Status",
+  "phoneNumberExample": "e.g., 03001234567",
+  "phoneNumberFormat": "Format: 03XX-XXXXXXX or 0XXX-XXXXXXX",
+  "selectFromContacts": "Select from contacts",
+  "phoneNumberRequired": "Phone number is required",
+  "phoneNumberOnlyDigits": "Phone number must contain only digits",
+  "phoneNumberMustStartWith0": "Phone number must start with 0",
+  "phoneNumberMustBe11Digits": "Phone number must be exactly 11 digits (e.g., 03001234567)",
+  "invalidMobilePrefix03XX": "Invalid mobile number prefix. Must be 03XX (e.g., 0300-0399)",
+  "invalidMobilePrefix04XX": "Invalid mobile number prefix. Must be 04XX (e.g., 0400-0499)",
+  "invalidMobilePrefix05XX": "Invalid mobile number prefix. Must be 05XX (e.g., 0500-0599)",
+  "invalidPhoneFormat": "Invalid phone number format. Must start with 03, 04, or 05 for mobile numbers",
+  "invalidPhoneFormatAfterPrefix": "Invalid phone number format. After prefix, must have 7 digits",
+  "phoneNumberAllSameDigits": "Phone number appears to be invalid (all digits are the same)",
+  "phoneNumberInvalid": "Phone number appears to be invalid",
+  "tapToChooseLocation": "Tap to choose location",
+  "pickupDateNotSelected": "Pickup Date: Not Selected",
+  "pickupDate": "Pickup Date",
+  "selectDate": "Select Date",
+  "pleaseEnterValidWeight": "Please enter a valid weight",
+  "weightExceedsCapacity": "Weight exceeds capacity!",
+  "requiredVehicles": "Required",
+  "currentVehicles": "Current",
+  "weightExceedsSingleVehicle": "Weight exceeds single vehicle capacity. Quantity automatically set to {requiredVehicles} vehicle(s)",
+  "@weightExceedsSingleVehicle": {
+    "placeholders": {
+      "requiredVehicles": {
+        "type": "String"
+      }
+    }
+  },
+  "weightExceedsCapacityAutoUpdate": "Weight exceeds capacity! Need {requiredVehicles} vehicle(s) but only {quantity} selected. Quantity will be updated automatically.",
+  "@weightExceedsCapacityAutoUpdate": {
+    "placeholders": {
+      "requiredVehicles": {
+        "type": "String"
+      },
+      "quantity": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseEnterValidQuantity": "Please enter a valid quantity (minimum 1)",
+  "fare": "Fare",
+  "pleaseEnterFareAmount": "Please enter fare amount",
+  "pleaseEnterValidAmount": "Please enter valid amount",
+  "contactsPermissionDenied": "Contacts permission denied",
+  "exceedsCapacityNeed": "Exceeds capacity! Need",
+  "vehicles": "vehicle(s)",
+  "kg": "kg",
+  "tons": "tons",
+  "approachingCapacityLimit": "Approaching capacity limit. Total capacity",
+  "totalCapacity": "Total capacity",
+  "remaining": "remaining",
+  "maximumCapacity": "Maximum capacity",
+  "noResponseReceived": "No Response Received",
+  "noDriversResponded": "No drivers or enterprises have responded to your request in the last 2 minutes.",
+  "increaseFare": "You can increase the fare to attract more responses:",
+  "newFareAmount": "New Fare Amount",
+  "updateFareResend": "Update Fare & Resend",
+  "requestResent": "Request resent with updated fare: Rs {fare}",
+  "@requestResent": {
+    "placeholders": {
+      "fare": {
+        "type": "String"
+      }
+    }
+  },
+  "errorResending": "Error resending request",
+  "errorCancelling": "Error cancelling request",
+  "errorLoadingData": "Error loading data:",
+  "errorFindingNewDriver": "Error finding new driver:",
+  "customerCancelledRequest": "Customer cancelled the request",
+  "requestAcceptedByDriver": "Your request has been accepted by a driver!",
+  "update": "Update",
+  "vehicleCountUpdate": "Vehicle Count Update",
+  "requestAcceptedByEnterprise": "Your request has been accepted by an enterprise!",
+  "viewBookings": "View Bookings",
+  "accepted": "ACCEPTED",
+  "counter": "COUNTER",
+  "unknown": "Unknown",
+  "loadDetails": "Load Details",
+  "contactDetails": "Contact Details",
+  "scheduleFare": "Schedule & Fare",
+  "notSpecified": "Not specified",
+  "selectRequestType": "Select Request Type",
+  "youNeedVehicles": "You need {quantity} vehicles. Would you like to send this request to individual drivers or enterprises?",
+  "@youNeedVehicles": {
+    "placeholders": {
+      "quantity": {
+        "type": "String"
+      }
+    }
+  },
+  "sendToDrivers": "Send to Drivers",
+  "sendToEnterprise": "Send to Enterprise",
+  "pleaseEnsureLocations": "Please ensure both pickup and destination locations are specified",
+  "requestSentToDrivers": "Request sent to drivers with {vehicleType} vehicles",
+  "@requestSentToDrivers": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "requestSentToEnterprises": "Request sent to enterprises with {vehicleType} vehicles",
+  "@requestSentToEnterprises": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "requestSentToBoth": "Request sent to drivers and enterprises with {vehicleType} vehicles",
+  "@requestSentToBoth": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "manageLogisticsOperations": "Manage your logistics operations efficiently",
+  "viewNewOffers": "View new offers",
+  "userNotLoggedIn": "User not logged in",
+  "errorSwitchingRole": "Error switching role: {error}",
+  "@errorSwitchingRole": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "profileComingSoon": "Profile - Coming Soon",
+  "settingsComingSoon": "Settings - Coming Soon",
+  "supportComingSoon": "Support - Coming Soon",
+  "aboutComingSoon": "About - Coming Soon",
+  "searchForLocation": "Search for a location...",
+  "nearestPlaces": "Nearest Places",
+  "searchResults": "Search Results",
+  "startTypingToSearch": "Start typing to search for locations",
+  "noSuggestionsFound": "No suggestions found. Try \"Choose on Map\" or type a full address.",
+  "tapToUseAddress": "Tap to use this address",
+  "errorSearchingPlaces": "Error searching places: {error}",
+  "@errorSearchingPlaces": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotGetPlaceDetails": "Could not get place details. Please use \"Choose on Map\" instead.",
+  "errorGettingPlaceDetails": "Error getting place details: {error}",
+  "@errorGettingPlaceDetails": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseSelectOrEnterLocation": "Please select or enter a location"
 }
 
 

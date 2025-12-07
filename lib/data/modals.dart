@@ -6,6 +6,7 @@ class CargoDetails {
   final double weight;
   final String weightUnit;
   final int quantity;
+  final DateTime? pickupDate;
   final TimeOfDay? pickupTime;
   final double offerFare;
   final bool isInsured;
@@ -15,6 +16,8 @@ class CargoDetails {
   final String receiverPhone;
   final String pickupLocation;
   final String destinationLocation;
+  final String? audioNotePath; // Local file path for audio note (deprecated, use audioNoteUrl)
+  final String? audioNoteUrl; // Firebase Storage URL for audio note
 
   CargoDetails({
     required this.loadName,
@@ -22,6 +25,7 @@ class CargoDetails {
     required this.weight,
     required this.weightUnit,
     required this.quantity,
+    this.pickupDate,
     this.pickupTime,
     required this.offerFare,
     required this.isInsured,
@@ -31,5 +35,7 @@ class CargoDetails {
     required this.receiverPhone,
     required this.pickupLocation,
     required this.destinationLocation,
+    this.audioNotePath,
+    this.audioNoteUrl,
   });
 }

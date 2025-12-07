@@ -22,6 +22,9 @@
   <meta name="description" content="A new Flutter project.">
   <meta name="google-signin-client_id"
     content="225444114745-56stpvja0vlg37g37pt8mkrc0bm13pom.apps.googleusercontent.com">
+  <meta name="permissions-policy" content="microphone=(self)">
+  <meta name="feature-policy" content="microphone 'self'">
+
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -34,9 +37,23 @@
 
   <title>logistics_app</title>
   <link rel="manifest" href="manifest.json">
-  
+
+  <!-- Noto Fonts for better character support -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <!-- Google Maps API for Web -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAJMxGoUZZWjgfFtfXAADRzryzVug96vZM&libraries=places,geocoding"></script>
+  <!-- Note: For web, we need places, directions, and geometry libraries -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDFOW1G-RFnsMNn7OWS-adyuR9-2beZUPk&libraries=places,directions,geometry,drawing"
+    async defer></script>
+
+  <style>
+    body {
+      font-family: 'Noto Sans', sans-serif;
+    }
+  </style>
 </head>
 
 <body>

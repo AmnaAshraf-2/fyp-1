@@ -110,8 +110,8 @@ class _DriverRegistrationState extends State<DriverRegistration> {
         "completedAt": ServerValue.timestamp,
       });
 
-      // mark profile complete
-      await ref.update({"isProfileComplete": true});
+      // Don't mark profile complete yet - wait until vehicle info is also saved
+      // isProfileComplete will be set to true in vehicle_info_page.dart after step 2
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(t.infoSaved)),

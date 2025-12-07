@@ -25,7 +25,6 @@
     "yourRequest",
     "waitingForDrivers",
     "driversWillRespondSoon",
-    "driverOffer",
     "driverName",
     "originalFare",
     "makeCounterOffer",
@@ -56,8 +55,6 @@
     "dataNotFound",
     "customerName",
     "welcomeBack",
-    "vehicles",
-    "drivers",
     "quickActions",
     "addVehicle",
     "addNewVehicle",
@@ -72,7 +69,6 @@
     "comingSoon",
     "retry",
     "vehicleManagement",
-    "totalVehicles",
     "noVehiclesFound",
     "addYourFirstVehicle",
     "makeModel",
@@ -82,7 +78,6 @@
     "areYouSureDeleteVehicle",
     "vehicleDeletedSuccessfully",
     "driverManagement",
-    "totalDrivers",
     "noDriversFound",
     "addYourFirstDriver",
     "experienceYears",
@@ -100,7 +95,9 @@
     "enterpriseSelection",
     "selectOrderType",
     "enterpriseDescription",
-    "driverDescription"
+    "driverDescription",
+    "update",
+    "vehicleCountUpdate"
   ],
 
   "ur": [
@@ -129,7 +126,6 @@
     "yourRequest",
     "waitingForDrivers",
     "driversWillRespondSoon",
-    "driverOffer",
     "driverName",
     "originalFare",
     "makeCounterOffer",
@@ -160,8 +156,6 @@
     "dataNotFound",
     "customerName",
     "welcomeBack",
-    "vehicles",
-    "drivers",
     "quickActions",
     "addVehicle",
     "addNewVehicle",
@@ -176,7 +170,6 @@
     "comingSoon",
     "retry",
     "vehicleManagement",
-    "totalVehicles",
     "noVehiclesFound",
     "addYourFirstVehicle",
     "makeModel",
@@ -186,7 +179,6 @@
     "areYouSureDeleteVehicle",
     "vehicleDeletedSuccessfully",
     "driverManagement",
-    "totalDrivers",
     "noDriversFound",
     "addYourFirstDriver",
     "experienceYears",
@@ -204,6 +196,8 @@
     "enterpriseSelection",
     "selectOrderType",
     "enterpriseDescription",
-    "driverDescription"
+    "driverDescription",
+    "update",
+    "vehicleCountUpdate"
   ]
 }

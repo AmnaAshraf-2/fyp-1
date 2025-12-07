@@ -148,8 +148,8 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Start Journey'),
-        content: const Text('Are you sure you want to start this journey?'),
+        title: Text(t.startJourney),
+        content: Text(t.areYouSureStartJourney),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -158,7 +158,7 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Start Journey'),
+            child: Text(t.startJourney),
           ),
         ],
       ),
@@ -184,13 +184,13 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Journey started successfully')),
+          SnackBar(content: Text(t.journeyStartedSuccessfully)),
         );
 
         Navigator.pop(context);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error starting journey: $e')),
+          SnackBar(content: Text('${t.errorStartingJourney}: $e')),
         );
       }
     }
@@ -245,6 +245,7 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
                       
                       // Customer information
                       Card(
+                        color: Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -271,6 +272,7 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
                       
                       // Request details
                       Card(
+                        color: Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -332,7 +334,7 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               icon: const Icon(Icons.play_arrow),
-                              label: const Text('Start Journey'),
+                              label: Text(t.startJourney),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,

@@ -20,7 +20,7 @@ class CustomerDrawer extends StatelessWidget {
         icon: Icons.person,
         title: loc.profile,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile - Coming Soon')),
+          SnackBar(content: Text(loc.profileComingSoon)),
         ),
       ),
       DrawerMenuItem(
@@ -32,21 +32,21 @@ class CustomerDrawer extends StatelessWidget {
         icon: Icons.settings,
         title: loc.settings,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Settings - Coming Soon')),
+          SnackBar(content: Text(loc.settingsComingSoon)),
         ),
       ),
       DrawerMenuItem(
         icon: Icons.help_outline,
         title: loc.supportHelp,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Support - Coming Soon')),
+          SnackBar(content: Text(loc.supportComingSoon)),
         ),
       ),
       DrawerMenuItem(
         icon: Icons.info_outline,
         title: loc.about,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('About - Coming Soon')),
+          SnackBar(content: Text(loc.aboutComingSoon)),
         ),
       ),
     ];
@@ -57,7 +57,9 @@ class CustomerDrawer extends StatelessWidget {
       menuItems: menuItems,
       headerColor1: Colors.blueAccent,
       headerColor2: Colors.blue,
+
+      // drawerBackground: Colors.white, // ADDED
+      // textColor: const Color(0xFF004d4d), // ADDED
     );
   }
 }
-

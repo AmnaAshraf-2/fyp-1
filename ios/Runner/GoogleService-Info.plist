@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>798522688381-kphlecq2i843evoqseagif3cs6t52fvg.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.798522688381-kphlecq2i843evoqseagif3cs6t52fvg</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>798522688381-545rm4s8ec8e9egf7todcta6k1i9enn1.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyC_NMOSM_Sku7uG1frhaQPbsgz1Ix9t6C8</string>
+	<key>GCM_SENDER_ID</key>
+	<string>798522688381</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.logisticsApp</string>
+	<key>PROJECT_ID</key>
+	<string>fyp-1-2dbaf</string>
+	<key>STORAGE_BUCKET</key>
+	<string>fyp-1-2dbaf.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:798522688381:ios:42a60f4d2952c715f00214</string>
+	<key>DATABASE_URL</key>
+	<string>https://fyp-1-2dbaf-default-rtdb.firebaseio.com</string>
+</dict>
+</plist>

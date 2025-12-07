@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:logistics_app/services/places_service.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class MapPickerScreen extends StatefulWidget {
   const MapPickerScreen({super.key});
@@ -17,12 +18,16 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   String? _selectedAddress;
   bool _isLoadingAddress = false;
   bool _isLoading = true;
+  bool _mapLoaded = false;
   String? _errorMessage;
   LatLng _currentPosition = const LatLng(33.6844, 73.0479); // Default to Islamabad
 
   @override
   void initState() {
     super.initState();
+    if (kDebugMode) {
+      print('🗺️ MapPickerScreen initialized');
+    }
     _getCurrentLocation();
   }
 
@@ -129,7 +134,6 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         print('❌ Error getting address: $e');
       }
       setState(() {
-        _errorMessage = 'Could not get address for this location';
         _isLoadingAddress = false;
       });
     }
@@ -150,6 +154,18 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     if (kDebugMode) {
       print('🗺️ Map created successfully');
     }
+    
+    // Set a timeout to detect if map doesn't load
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted && !_mapLoaded) {
+        if (kDebugMode) {
+          print('⚠️ Map may not have loaded properly after 5 seconds');
+        }
+        setState(() {
+          // Error message will be shown in build method using localization
+        });
+      }
+    });
     
     // Wait a bit before animating camera to ensure map is fully loaded
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -173,7 +189,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       Navigator.pop(context, result);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please tap on the map to select a location')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.tapMapToSelectLocation)),
       );
     }
   }
@@ -183,7 +199,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Choose Location on Map', style: TextStyle(color: Color(0xFF004d4d))),
+        title: Text(AppLocalizations.of(context)!.chooseLocationOnMap, style: const TextStyle(color: Color(0xFF004d4d))),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF004d4d)),
@@ -192,22 +208,22 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         children: [
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : _errorMessage != null && _errorMessage!.contains('map')
+              : _errorMessage != null
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Icon(Icons.error_outline, size: 64, color: Colors.red),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Unable to load map',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF004d4d)),
+                          Text(
+                            AppLocalizations.of(context)!.unableToLoadMap,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF004d4d)),
                           ),
                           const SizedBox(height: 8),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 32.0),
                             child: Text(
-                              _errorMessage!,
+                              _errorMessage ?? AppLocalizations.of(context)!.mapLoadingTimeout,
                               textAlign: TextAlign.center,
                               style: const TextStyle(color: Color(0xFF004d4d)),
                             ),
@@ -221,7 +237,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                               });
                               _getCurrentLocation();
                             },
-                            child: const Text('Retry'),
+                            child: Text(AppLocalizations.of(context)!.retry),
                           ),
                         ],
                       ),
@@ -256,6 +272,22 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                       myLocationEnabled: !kIsWeb,
                       zoomControlsEnabled: true,
                       mapType: MapType.normal,
+                      onCameraMoveStarted: () {
+                        if (kDebugMode) {
+                          print('🗺️ Camera move started');
+                        }
+                      },
+                      onCameraIdle: () {
+                        if (kDebugMode) {
+                          print('🗺️ Camera idle - Map is loaded');
+                        }
+                        if (mounted && !_mapLoaded) {
+                          setState(() {
+                            _mapLoaded = true;
+                            _isLoading = false;
+                          });
+                        }
+                      },
                     ),
           // Floating confirm button
           if (_selectedLocation != null)
@@ -267,9 +299,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                     ? _confirmSelection
                     : () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Please wait for address to load, or tap Confirm anyway to use coordinates'),
-                            duration: Duration(seconds: 2),
+                          SnackBar(
+                            content: Text(AppLocalizations.of(context)!.waitForAddressOrConfirm),
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                         // Allow confirming even without address
@@ -279,7 +311,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                         }
                       },
                 icon: const Icon(Icons.check),
-                label: const Text('Confirm'),
+                label: Text(AppLocalizations.of(context)!.confirm),
                 backgroundColor: Colors.blue,
               ),
             ),
@@ -289,6 +321,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             left: 0,
             right: 0,
             child: Card(
+              color: Colors.white,
               margin: EdgeInsets.zero,
               elevation: 8,
               shape: const RoundedRectangleBorder(
@@ -303,9 +336,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Selected Location:',
-                      style: TextStyle(
+                    Text(
+                      '${AppLocalizations.of(context)!.selectedLocation}:',
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                         color: Color(0xFF004d4d),
@@ -313,15 +346,15 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                     ),
                     const SizedBox(height: 8),
                     if (_isLoadingAddress)
-                      const Row(
+                      Row(
                         children: [
-                          SizedBox(
+                          const SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF004d4d)),
                           ),
-                          SizedBox(width: 8),
-                          Text('Loading address...', style: TextStyle(color: Color(0xFF004d4d))),
+                          const SizedBox(width: 8),
+                          Text(AppLocalizations.of(context)!.loadingAddress, style: const TextStyle(color: Color(0xFF004d4d))),
                         ],
                       )
                     else if (_selectedAddress != null)
@@ -339,19 +372,19 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                       )
                     else if (_errorMessage != null)
                       Text(
-                        _errorMessage!,
+                        AppLocalizations.of(context)!.couldNotGetAddress,
                         style: const TextStyle(color: Colors.red),
                       )
                     else
-                      const Text(
-                        'Tap on the map to select a location',
-                        style: TextStyle(color: Color(0xFF004d4d)),
+                      Text(
+                        AppLocalizations.of(context)!.tapMapToSelectLocation,
+                        style: const TextStyle(color: Color(0xFF004d4d)),
                       ),
                     if (_selectedLocation != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Text(
-                          'Coordinates: ${_selectedLocation!.latitude.toStringAsFixed(6)}, ${_selectedLocation!.longitude.toStringAsFixed(6)}',
+                          '${AppLocalizations.of(context)!.coordinates}: ${_selectedLocation!.latitude.toStringAsFixed(6)}, ${_selectedLocation!.longitude.toStringAsFixed(6)}',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],

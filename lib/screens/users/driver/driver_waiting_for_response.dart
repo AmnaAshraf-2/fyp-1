@@ -133,6 +133,7 @@ class _DriverWaitingForResponseScreenState extends State<DriverWaitingForRespons
             const SizedBox(height: 30),
             if (_requestData != null) ...[
               Card(
+                color: Colors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(

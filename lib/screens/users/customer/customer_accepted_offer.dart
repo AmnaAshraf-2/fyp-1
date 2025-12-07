@@ -53,7 +53,8 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading data: $e');
+      final t = AppLocalizations.of(context)!;
+      print('${t.errorLoadingData} $e');
       setState(() {
         _isLoading = false;
       });
@@ -61,6 +62,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
   }
 
   Future<void> _callDriver() async {
+    final t = AppLocalizations.of(context)!;
     if (_driverData?['phone'] != null) {
       final phoneNumber = _driverData!['phone'].toString();
       final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
@@ -69,7 +71,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
         await launchUrl(phoneUri);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cannot make call to $phoneNumber')),
+          SnackBar(content: Text(t.cannotMakeCall(phoneNumber))),
         );
       }
     }
@@ -157,7 +159,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
           await _db.child('driver_notifications/$driverId').push().set({
             'type': 'request_cancelled',
             'requestId': widget.requestId,
-            'message': 'Customer cancelled the request',
+            'message': t.customerCancelledRequest,
             'timestamp': DateTime.now().millisecondsSinceEpoch,
           });
         }
@@ -169,7 +171,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
         Navigator.pop(context);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${t.errorOccurred} $e')),
         );
       }
     }
@@ -181,8 +183,8 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Find New Driver'),
-        content: const Text('Are you sure you want to find a new driver for this request?'),
+        title: Text(t.findNewDriver),
+        content: Text(t.areYouSureFindNewDriver),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -191,7 +193,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-            child: const Text('Find New Driver'),
+            child: Text(t.findNewDriver),
           ),
         ],
       ),
@@ -216,13 +218,13 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
           await _db.child('driver_notifications/$driverId').push().set({
             'type': 'request_cancelled',
             'requestId': widget.requestId,
-            'message': 'Customer cancelled the request to find a new driver',
+            'message': t.customerCancelledToFindNewDriver,
             'timestamp': DateTime.now().millisecondsSinceEpoch,
           });
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Finding new driver...')),
+          SnackBar(content: Text(t.findingNewDriver)),
         );
 
         // Navigate to waiting for response screen
@@ -234,7 +236,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error finding new driver: $e')),
+          SnackBar(content: Text('${t.errorFindingNewDriver} $e')),
         );
       }
     }
@@ -263,6 +265,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
                     children: [
                       // Driver information
                       Card(
+                        color: Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -293,6 +296,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
                       
                       // Offer details
                       Card(
+                        color: Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -356,7 +360,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
                             width: double.infinity,
                             child: TextButton.icon(
                               icon: const Icon(Icons.search),
-                              label: const Text('Find New Driver'),
+                              label: Text(t.findNewDriver),
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.blue,
                                 padding: const EdgeInsets.symmetric(vertical: 12),

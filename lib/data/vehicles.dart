@@ -20,7 +20,7 @@ class Vehicle {
       case 'vehicleCarrier': return loc.vehicleCarrier;
       case 'containerTruck20ft': return loc.containerTruck20ft;
       case 'containerTruck40ft': return loc.containerTruck40ft;
-      case 'oilTanker': return loc.oilTanker;
+      //case 'oilTanker': return loc.oilTanker;
       case 'reeferCarrier': return loc.reeferCarrier;
       case 'reeferCarrierLarge': return loc.reeferCarrierLarge;
       case 'miniLoaderRickshaw': return loc.miniLoaderRickshaw;
@@ -39,7 +39,7 @@ class Vehicle {
       case 'vehicleCarrierCapacity': return loc.vehicleCarrierCapacity;
       case 'containerTruck20ftCapacity': return loc.containerTruck20ftCapacity;
       case 'containerTruck40ftCapacity': return loc.containerTruck40ftCapacity;
-      case 'oilTankerCapacity': return loc.oilTankerCapacity;
+      //case 'oilTankerCapacity': return loc.oilTankerCapacity;
       case 'reeferCarrierCapacity': return loc.reeferCarrierCapacity;
       case 'reeferCarrierLargeCapacity': return loc.reeferCarrierLargeCapacity;
       case 'miniLoaderRickshawCapacity': return loc.miniLoaderRickshawCapacity;
@@ -90,11 +90,11 @@ final List<Vehicle> vehicleList = [
     capacityKey: 'containerTruck40ftCapacity',
     //image: 'assets/images/container_40ft.png',
   ),
-  Vehicle(
-    nameKey: 'oilTanker',
-    capacityKey: 'oilTankerCapacity',
-    //image: 'assets/images/oil_tanker.png',
-  ),
+  // Vehicle(
+  //   nameKey: 'oilTanker',
+  //   capacityKey: 'oilTankerCapacity',
+  //   //image: 'assets/images/oil_tanker.png',
+  // ),
   
   Vehicle(
     nameKey: 'reeferCarrier',
@@ -136,5 +136,10 @@ final List<Vehicle> vehicleList = [
     nameKey: 'dumper',
     capacityKey: 'dumperCapacity',
     //image: 'assets/images/flatbed.png',
+  ),
+  Vehicle(
+    nameKey: 'Bulan',
+    capacityKey: 'trailerCapacity',
+    //image: 'assets/images/trailer.png',
   ),
 ];

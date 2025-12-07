@@ -4,8 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:logistics_app/data/vehicles.dart';
+import 'package:logistics_app/services/vehicle_provider.dart';
 import 'package:logistics_app/screens/users/driver/drivers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logistics_app/main.dart';
 import 'package:logistics_app/splash/welcome.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -27,6 +29,10 @@ class VehicleInfoPage extends StatefulWidget {
 
 class _VehicleInfoPageState extends State<VehicleInfoPage> {
   final _formKey = GlobalKey<FormState>();
+  final VehicleProvider _vehicleProvider = VehicleProvider();
+  List<VehicleModel> _vehicles = [];
+  bool _isLoadingVehicles = true;
+  String _languageCode = 'en';
 
   final TextEditingController makeModelController = TextEditingController();
   final TextEditingController colorController = TextEditingController();
@@ -43,6 +49,63 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
   File? fitnessCopy;
 
   //final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVehicles();
+    _loadLanguageCode();
+    // Listen to locale changes
+    localeNotifier?.addListener(_onLocaleChanged);
+  }
+
+  @override
+  void dispose() {
+    localeNotifier?.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
+
+  void _onLocaleChanged() {
+    _loadLanguageCode();
+  }
+
+  Future<void> _loadLanguageCode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final user = FirebaseAuth.instance.currentUser;
+      String code = 'en';
+      if (user != null) {
+        code = prefs.getString('languageCode_${user.uid}') ?? 'en';
+      } else {
+        code = prefs.getString('languageCode') ?? 'en';
+      }
+      if (mounted) {
+        setState(() {
+          _languageCode = code;
+        });
+      }
+    } catch (e) {
+      // Default to English
+    }
+  }
+
+  Future<void> _loadVehicles() async {
+    try {
+      final vehicles = await _vehicleProvider.loadVehicles();
+      if (mounted) {
+        setState(() {
+          _vehicles = vehicles;
+          _isLoadingVehicles = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingVehicles = false;
+        });
+      }
+    }
+  }
 
   Future<void> _pickDate(TextEditingController controller) async {
     DateTime now = DateTime.now();
@@ -132,9 +195,11 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
 
       await _db.child("users").child(uid).update({
         "vehicleInfo": vehicleData,
+        "isProfileComplete": true, // Mark profile complete after both steps are done
       });
 
       print('✅ DEBUG: Vehicle info saved successfully!');
+      print('✅ DEBUG: Driver registration complete - isProfileComplete set to true');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(loc.vehicleInfoSaved)),
@@ -215,15 +280,17 @@ class _VehicleInfoPageState extends State<VehicleInfoPage> {
                   ),
                 ),
                 dropdownColor: Colors.white,
-                items: vehicleList
-                    .map((v) => DropdownMenuItem<String>(
-                          value: v.getName(loc),
-                          child: Text(
-                            "${v.getName(loc)} (${v.getCapacity(loc)})",
-                            style: const TextStyle(color: Colors.teal),
-                          ),
-                        ))
-                    .toList(),
+                items: _isLoadingVehicles
+                    ? [const DropdownMenuItem<String>(value: null, child: Text('Loading...'))]
+                    : _vehicles
+                        .map((v) => DropdownMenuItem<String>(
+                              value: v.nameKey, // Store nameKey instead of localized name
+                              child: Text(
+                                "${v.getName(_languageCode)} (${v.getCapacity(_languageCode)})",
+                                style: const TextStyle(color: Colors.teal),
+                              ),
+                            ))
+                        .toList(),
                 onChanged: (val) => setState(() => selectedVehicleType = val),
                 validator: (v) => v == null ? loc.selectVehicleType : null,
               ),

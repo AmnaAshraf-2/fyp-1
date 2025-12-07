@@ -259,8 +259,280 @@
   "pleaseEnterValidEmail": "مهرباني وکړئ سمه بریښنالیک پته ولیکئ",
   "noUpcomingBookings": "هیڅ راتلونکي حجره نشته",
   "findNewDriver": "نوی چلوونکی ومومئ",
+  "areYouSureFindNewDriver": "ایا تاسو واقعیا د دې غوښتنې لپاره نوی چلوونکی موندل غواړئ؟",
+  "customerCancelledToFindNewDriver": "پیرودونکي د نوی چلوونکی موندلو لپاره غوښتنه لغوه کړه",
+  "findingNewDriver": "نوی چلوونکی موندل کېږي...",
+  "cannotMakeCall": "د {phoneNumber} ته کال نشي کولی",
+  "@cannotMakeCall": {
+    "placeholders": {
+      "phoneNumber": {
+        "type": "String"
+      }
+    }
+  },
   "senderPhoneNumber": "د لېږدونکي تلیفون شمیره",
   "receiverPhoneNumber": "د ترلاسه کوونکي تلیفون شمیره",
   "pickupLocation": "د رااخیستلو ځای",
-  "destinationLocation": "د منزل ځای"
+  "destinationLocation": "د منزل ځای",
+  
+  "guestDriver": "مېلمه چلوونکی",
+  "upcomingTrips": "راتلونکي سفرونه",
+  "pastTrips": "تېر سفرونه",
+  
+  "notifications": "خبرتیاوې",
+  "noNotifications": "هیڅ خبرتیا نشته",
+  "allNotificationsCleared": "ټولې خبرتیاوې پاکې شوې",
+  "errorClearingNotifications": "د خبرتیاوو پاکولو کې تېروتنه",
+  "unknownTime": "نامعلوم وخت",
+  "justNow": "همدا اوس",
+  "dayAgo": "ورځ دمخه",
+  "daysAgo": "ورځې دمخه",
+  "hourAgo": "ساعت دمخه",
+  "hoursAgo": "ساعتونه دمخه",
+  "minuteAgo": "دقیقه دمخه",
+  "minutesAgo": "دقیقې دمخه",
+  "startJourney": "سفر پیل کړئ",
+  "areYouSureStartJourney": "ایا تاسو واقعیا دا سفر پیل کول غواړئ؟",
+  "journeyStartedSuccessfully": "سفر په بریالیتوب سره پیل شو",
+  "errorStartingJourney": "د سفر پیلولو کې تېروتنه",
+  "completeJourney": "سفر بشپړ کړئ",
+  "areYouSureCompleteJourney": "ایا تاسو واقعیا دا سفر بشپړول غواړئ؟",
+  "journeyCompletedSuccessfully": "سفر په بریالیتوب سره بشپړ شو",
+  "errorCompletingJourney": "د سفر بشپړولو کې تېروتنه",
+  "tripDetails": "د سفر جزیات",
+  "routeInformation": "د لارې معلومات",
+  "loadName": "د سامان نوم",
+  "loadType": "د سامان ډول",
+  "vehicleType": "د موټر ډول",
+  "pickupDate": "د رااخیستلو نیټه",
+  "pickupTime": "د رااخیستلو وخت",
+  "pleaseEnterValidFareAmount": "مهرباني وکړئ د کرایې د صحیح مقدار داخل کړئ",
+  "refresh": "تازه کړئ",
+  "viewRouteOnMap": "په نقشه کې لاره وګورئ",
+  
+  "liveTracking": "ژوندی تعقیب",
+  "destination": "منزل",
+  "driverLocation": "د چلوونکي ځای",
+  "errorLoadingMap": "د نقشې د پورته کولو کې تېروتنه",
+  "waitingForDriverLocation": "د چلوونکي د ځای انتظار...",
+  "noAddressProvided": "هیڅ پته نه ده ورکړل شوې",
+  "locationNotFound": "د دې پتې لپاره ځای ونه موندل شو",
+  "errorFindingLocation": "د ځای موندلو کې تېروتنه",
+  "goBack": "بیرته لاړ شئ",
+  "chooseLocationOnMap": "په نقشه کې ځای وټاکئ",
+  "unableToLoadMap": "نقشه پورته نشو کولی",
+  "tapMapToSelectLocation": "د ځای د انتخاب لپاره نقشه باندې وټاکئ",
+  "waitForAddressOrConfirm": "مهرباني وکړئ د پتې د پورته کیدو انتظار وکړئ، یا د کوآرډینیټونو د کارولو لپاره تصدیق باندې وټاکئ",
+  "confirm": "تصدیق کړئ",
+  "selectedLocation": "غوره شوی ځای",
+  "loadingAddress": "پته پورته کېږي...",
+  "coordinates": "کوآرډینیټونه",
+  "couldNotGetAddress": "د دې ځای لپاره پته نشو کولی ترلاسه کړو",
+  "mapLoadingTimeout": "نقشه د توقع څخه ډیر وخت نیسي چې پورته شي. مهرباني وکړئ خپل انټرنیټ اړیکه او Google Maps API key وګورئ.",
+  "routeMap": "د لارې نقشه",
+  "route": "لاره",
+  "pickup": "رااخیستل",
+  
+  "directEnterpriseOffer": "مستقیم سازمان وړاندیز",
+  "driverOffer": "د چلوونکي وړاندیز",
+  "enterpriseUser": "د سازمان کارن",
+  "keyMetrics": "کلیدي معیارونه",
+  "totalVehicles": "ټول موټرونه",
+  "totalDrivers": "ټول چلوونکي",
+  "activeBookings": "فعال بکینګونه",
+  "pendingOffers": "پاتې وړاندیزونه",
+  "bookings": "بکینګونه",
+  "viewActiveBookings": "فعال بکینګونه وګورئ",
+  "newTab": "نوی",
+  "active": "فعال",
+  "pending": "پاتې",
+  "activeBookingsTitle": "فعال بکینګونه",
+  "activeBookingsSubtitle": "اوسنی فعال بکینګونه دلته به ښکاره شي",
+  "pendingBookingsTitle": "پاتې بکینګونه",
+  "pendingBookingsSubtitle": "پاتې بکینګ تصدیقونه دلته به ښکاره شي",
+  "profileSettings": "پروفایل او تنظیمات",
+  "ceo": "سی ای او",
+  "managingDirector": "د مدیریت مدیر",
+  "director": "مدیر",
+  "shareholder": "وړونکی",
+  "partner": "شریک",
+  "other": "نور",
+  "soleProprietorship": "واحد مالکیت",
+  "partnership": "شریکول",
+  "governmentEntity": "د حکومت اداره",
+  "years": "کلونه",
+  "privateLimitedCompany": "خصوصي محدود شرکت",
+  "publicLimitedCompany": "عمومي محدود شرکت",
+  "nonProfitOrganization": "غیر انتفاعي سازمان",
+  "offerSentToCustomer": "وړاندیز پیرودونکي ته واستول شو",
+  "guestUser": "مېلمه کارن",
+  "bookYourCargo": "خپل کارګو بک کړئ",
+  "trackYourCargo": "خپل کارګو تعقیب کړئ",
+  "scheduledBookings": "پلان شوي بکینګونه",
+  
+  "cargoDetailsSection": "د کارګو جزئیات",
+  "weightVehicleSection": "وزن او موټر",
+  "contactDetailsSection": "د اړیکو جزئیات",
+  "locationsSection": "ځایونه",
+  "scheduleSection": "مهال ویش",
+  "fareInsuranceSection": "کرایه او بیمه",
+  "capacityStatus": "د ظرفیت حالت",
+  "phoneNumberExample": "د بېلګې په توګه: 03001234567",
+  "phoneNumberFormat": "فارمیټ: 03XX-XXXXXXX یا 0XXX-XXXXXXX",
+  "selectFromContacts": "د اړیکو څخه وټاکئ",
+  "phoneNumberRequired": "د تلیفون شمیره اړینه ده",
+  "phoneNumberOnlyDigits": "د تلیفون شمیره باید یوازې شمیرې ولري",
+  "phoneNumberMustStartWith0": "د تلیفون شمیره باید د 0 سره پیل شي",
+  "phoneNumberMustBe11Digits": "د تلیفون شمیره باید دقیقاً 11 شمیرې ولري (د بېلګې په توګه: 03001234567)",
+  "invalidMobilePrefix03XX": "ناسم موبایل شمیره مخکښ. باید 03XX وي (د بېلګې په توګه: 0300-0399)",
+  "invalidMobilePrefix04XX": "ناسم موبایل شمیره مخکښ. باید 04XX وي (د بېلګې په توګه: 0400-0499)",
+  "invalidMobilePrefix05XX": "ناسم موبایل شمیره مخکښ. باید 05XX وي (د بېلګې په توګه: 0500-0599)",
+  "invalidPhoneFormat": "ناسم د تلیفون شمیره فارمیټ. د موبایل شمیرو لپاره باید د 03، 04، یا 05 سره پیل شي",
+  "invalidPhoneFormatAfterPrefix": "ناسم د تلیفون شمیره فارمیټ. د مخکښ وروسته باید 7 شمیرې ولري",
+  "phoneNumberAllSameDigits": "د تلیفون شمیره ناسمه ښکاري (ټولې شمیرې یو شان دي)",
+  "phoneNumberInvalid": "د تلیفون شمیره ناسمه ښکاري",
+  "tapToChooseLocation": "د ځای د ټاکلو لپاره ټپ وکړئ",
+  "pickupDateNotSelected": "د راټولولو نیټه: نه ده ټاکل شوې",
+  "pickupDate": "د راټولولو نیټه",
+  "selectDate": "نیټه وټاکئ",
+  "pleaseEnterValidWeight": "مهرباني وکړئ د وزن درست ارزښت ولیکئ",
+  "weightExceedsCapacity": "وزن د ظرفیت څخه زیات دی!",
+  "requiredVehicles": "اړین",
+  "currentVehicles": "اوسنی",
+  "weightExceedsSingleVehicle": "وزن د یو موټر ظرفیت څخه زیات دی. مقدار په اتوماتیک ډول {requiredVehicles} موټر(ونو) ته تنظیم شو",
+  "@weightExceedsSingleVehicle": {
+    "placeholders": {
+      "requiredVehicles": {
+        "type": "String"
+      }
+    }
+  },
+  "weightExceedsCapacityAutoUpdate": "وزن د ظرفیت څخه زیات دی! {requiredVehicles} موټر(ونه) اړین دي مګر یوازې {quantity} ټاکل شوي. مقدار به په اتوماتیک ډول تازه شي.",
+  "@weightExceedsCapacityAutoUpdate": {
+    "placeholders": {
+      "requiredVehicles": {
+        "type": "String"
+      },
+      "quantity": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseEnterValidQuantity": "مهرباني وکړئ د مقدار درست ارزښت ولیکئ (لږترلږه 1)",
+  "fare": "کرایه",
+  "pleaseEnterFareAmount": "مهرباني وکړئ د کرایې مقدار ولیکئ",
+  "pleaseEnterValidAmount": "مهرباني وکړئ د مقدار درست ارزښت ولیکئ",
+  "contactsPermissionDenied": "د اړیکو اجازه رد شوه",
+  "exceedsCapacityNeed": "د ظرفیت څخه زیات! اړتیا",
+  "vehicles": "موټر(ونه)",
+  "kg": "کیلو",
+  "tons": "ټن",
+  "approachingCapacityLimit": "د ظرفیت حد ته نږدې. ټول ظرفیت",
+  "totalCapacity": "ټول ظرفیت",
+  "remaining": "پاتې",
+  "maximumCapacity": "د حداکثر ظرفیت",
+  "noResponseReceived": "کومه ځواب نه دی ترلاسه شوی",
+  "noDriversResponded": "په تیرو 2 دقیقو کې هیڅ چلوونکی یا سوداګرۍ ستاسو غوښتنې ته ځواب نه دی ورکړی.",
+  "increaseFare": "تاسو کولی شئ د زیاتو ځوابونو لپاره کرایه لوړه کړئ:",
+  "newFareAmount": "نوی کرایه مقدار",
+  "updateFareResend": "کرایه تازه کړئ او بیا واستوئ",
+  "requestResent": "غوښتنه د تازه شوې کرایې سره بیا واستول شوه: روپۍ {fare}",
+  "@requestResent": {
+    "placeholders": {
+      "fare": {
+        "type": "String"
+      }
+    }
+  },
+  "errorResending": "د غوښتنې بیا لیږلو کې تېروتنه",
+  "errorCancelling": "د غوښتنې لغوه کولو کې تېروتنه",
+  "errorLoadingData": "د معلوماتو د پورته کولو تېروتنه:",
+  "errorFindingNewDriver": "د نوی چلوونکی موندلو کې تېروتنه:",
+  "customerCancelledRequest": "پیرودونکي غوښتنه لغوه کړه",
+  "requestAcceptedByDriver": "ستاسو غوښتنه د یو چلوونکی لخوا ومنل شوه!",
+  "requestAcceptedByEnterprise": "ستاسو غوښتنه د یو سوداګرۍ لخوا ومنل شوه!",
+  "viewBookings": "بکنګونه وګورئ",
+  "accepted": "ومنل شوی",
+  "counter": "کاونټر",
+  "unknown": "نامعلوم",
+  "loadDetails": "د بار تفصیلات",
+  "contactDetails": "د اړیکو تفصیلات",
+  "scheduleFare": "مهال او کرایه",
+  "notSpecified": "مشخص شوی نه دی",
+  "selectRequestType": "د غوښتنې ډول وټاکئ",
+  "youNeedVehicles": "تاسو ته {quantity} موټر(ونه) اړین دي. ایا تاسو غواړئ دا غوښتنه انفرادي چلوونکو یا سوداګریو ته واستوئ؟",
+  "@youNeedVehicles": {
+    "placeholders": {
+      "quantity": {
+        "type": "String"
+      }
+    }
+  },
+  "sendToDrivers": "چلوونکو ته واستوئ",
+  "sendToEnterprise": "سوداګرۍ ته واستوئ",
+  "pleaseEnsureLocations": "مهرباني وکړئ ډاډه کړئ چې د پک اپ او منزل دواړه موقعیتونه مشخص شوي",
+  "requestSentToDrivers": "غوښتنه د {vehicleType} موټر(ونو) سره چلوونکو ته واستول شوه",
+  "@requestSentToDrivers": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "requestSentToEnterprises": "غوښتنه د {vehicleType} موټر(ونو) سره سوداګریو ته واستول شوه",
+  "@requestSentToEnterprises": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "requestSentToBoth": "غوښتنه د {vehicleType} موټر(ونو) سره چلوونکو او سوداګریو ته واستول شوه",
+  "@requestSentToBoth": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "drivers": "چلوونکي",
+  "manageLogisticsOperations": "ستاسو د لاجستیک عملیاتو په اغیزمنه توګه اداره کړئ",
+  "viewNewOffers": "نوې وړاندیزونه وګورئ",
+  "userNotLoggedIn": "کارن ننوتلی نه دی",
+  "errorSwitchingRole": "د رول بدلولو کې تېروتنه: {error}",
+  "@errorSwitchingRole": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "profileComingSoon": "پروفایل - ژر راځي",
+  "settingsComingSoon": "تنظیمات - ژر راځي",
+  "supportComingSoon": "ملاتړ - ژر راځي",
+  "aboutComingSoon": "په اړه - ژر راځي",
+  "searchForLocation": "د موقعیت لټون...",
+  "nearestPlaces": "نږدې ځایونه",
+  "searchResults": "د لټون پایلې",
+  "startTypingToSearch": "د موقعیتونو لټون لپاره ټایپ کول پیل کړئ",
+  "noSuggestionsFound": "هیڅ وړاندیزونه ونه موندل شول. \"په نقشه کې غوره کړئ\" وکاروئ یا بشپړ پته ولیکئ.",
+  "tapToUseAddress": "د دې پتې کارولو لپاره ټایپ کړئ",
+  "errorSearchingPlaces": "د موقعیتونو لټون کې تېروتنه: {error}",
+  "@errorSearchingPlaces": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotGetPlaceDetails": "د موقعیت جزئیات ترلاسه نشول. مهرباني وکړئ \"په نقشه کې غوره کړئ\" وکاروئ.",
+  "errorGettingPlaceDetails": "د موقعیت جزئیات ترلاسه کولو کې تېروتنه: {error}",
+  "@errorGettingPlaceDetails": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseSelectOrEnterLocation": "مهرباني وکړئ موقعیت غوره کړئ یا ولیکئ"
 }

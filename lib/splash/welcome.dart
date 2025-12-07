@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logistics_app/main.dart';
-import 'package:logistics_app/screens/language.dart';
 import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
 import 'package:logistics_app/screens/users/driver/drivers.dart';
 import 'package:logistics_app/screens/users/driver/driver_registration.dart';
@@ -11,6 +10,8 @@ import 'package:logistics_app/screens/users/enterprise/enterprise_details.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_dashboard.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:logistics_app/services/location_permission_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -34,11 +35,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   Future<void> _navigateBasedOnRole() async {
     final prefs = await SharedPreferences.getInstance();
-    String? languageCode = prefs.getString('languageCode') ?? 'en';
+    final user = FirebaseAuth.instance.currentUser;
+    String languageCode = 'en';
+    if (user != null) {
+      languageCode = prefs.getString('languageCode_${user.uid}') ?? 'en';
+    } else {
+      languageCode = prefs.getString('languageCode') ?? 'en';
+    }
 
     MyApp.setLocale(context, Locale(languageCode));
 
-    User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       Navigator.pushReplacementNamed(context, '/login');
       return;
@@ -72,10 +78,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         if (driverDetails != null && 
             vehicleInfo != null && 
             isProfileComplete == true) {
+          // Request location permission for drivers (needed to show nearby customers)
+          if (mounted && !kIsWeb) {
+            final locationService = LocationPermissionService();
+            await locationService.requestLocationPermission(context);
+          }
           screen = const DriversScreen();
         } else {
           // If step 1 is complete but step 2 is not, navigate to vehicle info
-          if (driverDetails != null && isProfileComplete == true) {
+          if (driverDetails != null && vehicleInfo == null) {
             // Need to get cnic and license from driverDetails for VehicleInfoPage
             final cnic = (driverDetails as Map)['cnic']?.toString() ?? '';
             final license = (driverDetails as Map)['licenseNumber']?.toString() ?? '';
@@ -86,6 +97,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               phone: phone,
             );
           } else {
+            // Step 1 not complete, go to driver registration
             screen = const DriverRegistration();
           }
         }
@@ -96,6 +108,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         final isProfileComplete = userData['isProfileComplete'] ?? false;
         
         if (enterpriseDetails != null && isProfileComplete == true) {
+          // Request location permission for enterprises (needed to show nearby customers)
+          if (mounted && !kIsWeb) {
+            final locationService = LocationPermissionService();
+            await locationService.requestLocationPermission(context);
+          }
           screen = const EnterpriseDashboard();
         } else {
           screen = const EnterpriseDetailsScreen();
@@ -146,7 +163,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "PLAN • TRACK • MANAGE",
+                    "BOOK • TRACK • MANAGE",
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.white70,

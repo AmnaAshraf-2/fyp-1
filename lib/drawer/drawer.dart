@@ -2,11 +2,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:logistics_app/screens/users/driver/drivers.dart';
 import 'package:logistics_app/main.dart';
@@ -21,8 +18,7 @@ class AppDrawer extends StatefulWidget {
 }
 
 class _AppDrawerState extends State<AppDrawer> {
-  String _userName = "Guest User";
-  String? _profileImageUrl;
+  String _userName = "";
 
   @override
   void initState() {
@@ -35,68 +31,19 @@ class _AppDrawerState extends State<AppDrawer> {
     if (user != null) {
       final snapshot =
           await FirebaseDatabase.instance.ref("users/${user.uid}").get();
+      final loc = AppLocalizations.of(context);
       if (snapshot.exists) {
         final data = snapshot.value as Map;
         setState(() {
-          _userName = data['name'] ?? "Guest User";
-          _profileImageUrl = data['profilePic'];
+          _userName = data['name'] ?? (loc?.guestUser ?? "Guest User");
         });
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString("userName", _userName);
-        if (_profileImageUrl != null) {
-          await prefs.setString("profilePic", _profileImageUrl!);
-        }
-      }
-    }
-  }
-
-  Future<void> _changeProfilePic() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      File imageFile = File(pickedFile.path);
-
-      try {
-        // Get current user
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) return;
-
-        // Upload to Firebase Storage
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child("profile_pics")
-            .child("${user.uid}.jpg");
-
-        await storageRef.putFile(imageFile);
-
-        // Get download URL
-        String downloadUrl = await storageRef.getDownloadURL();
-
-        // Save URL in SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('profile_image', downloadUrl);
-
-        // Optional: also save in Firebase Realtime Database
-        await FirebaseDatabase.instance
-            .ref()
-            .child("users")
-            .child(user.uid)
-            .update({"profile_image": downloadUrl});
-
-        // Update UI immediately
+      } else {
+        // If user doesn't exist in database, use guest user label
         setState(() {
-          _profileImageUrl = downloadUrl;
+          _userName = loc?.guestUser ?? "Guest User";
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile picture updated")),
-        );
-      } catch (e) {
-        debugPrint("Error uploading profile pic: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed: $e")),
-        );
       }
     }
   }
@@ -106,32 +53,50 @@ class _AppDrawerState extends State<AppDrawer> {
     showDialog(
       context: context,
       builder: (context) {
+        final loc = AppLocalizations.of(context)!;
         return AlertDialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text("Switch Role"),
+          title: Text(
+            loc.switchRole,
+            style: const TextStyle(color: Color(0xFF004d4d)),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.person, color: Colors.orange),
-                title: const Text("Customer"),
+                leading: const Icon(Icons.person, color: Color(0xFF004d4d)),
+                title: Text(
+                  loc.customer,
+                  style: const TextStyle(color: Color(0xFF004d4d)),
+                ),
                 onTap: () {
+                  Navigator.pop(context);
                   _updateRole("customer", context);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.local_shipping, color: Colors.blue),
-                title: const Text("Driver"),
+                leading:
+                    const Icon(Icons.local_shipping, color: Color(0xFF004d4d)),
+                title: Text(
+                  loc.driver,
+                  style: const TextStyle(color: Color(0xFF004d4d)),
+                ),
                 onTap: () {
+                  Navigator.pop(context);
                   _updateRole("driver", context);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.business, color: Colors.green),
-                title: const Text("Enterprise"),
+                leading: const Icon(Icons.business, color: Color(0xFF004d4d)),
+                title: Text(
+                  loc.enterprise,
+                  style: const TextStyle(color: Color(0xFF004d4d)),
+                ),
                 onTap: () {
+                  Navigator.pop(context);
                   _updateRole("enterprise", context);
                 },
               ),
@@ -164,26 +129,38 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   void _showLanguageDialog(BuildContext context) async {
-    // Get current language from SharedPreferences
+    // Get current language from SharedPreferences (user-specific)
+    final user = FirebaseAuth.instance.currentUser;
     final prefs = await SharedPreferences.getInstance();
-    String initialLanguage = prefs.getString('languageCode') ?? 'en';
-    
+    String initialLanguage = 'en';
+    if (user != null) {
+      initialLanguage = prefs.getString('languageCode_${user.uid}') ?? 'en';
+    } else {
+      initialLanguage = prefs.getString('languageCode') ?? 'en';
+    }
+
     showDialog(
       context: context,
       builder: (dialogContext) {
         final loc = AppLocalizations.of(context)!;
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            // Use a variable that persists across rebuilds
             final currentLanguage = initialLanguage;
-            
+
             return AlertDialog(
-              title: Text(loc.selectLanguage),
+              backgroundColor: Colors.white,
+              title: Text(
+                loc.selectLanguage,
+                style: const TextStyle(color: Color(0xFF004d4d)),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
-                    title: Text(loc.english),
+                    title: Text(
+                      loc.english,
+                      style: const TextStyle(color: Color(0xFF004d4d)),
+                    ),
                     leading: Radio<String>(
                       value: 'en',
                       groupValue: currentLanguage,
@@ -193,7 +170,10 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                   ),
                   ListTile(
-                    title: Text(loc.urdu),
+                    title: Text(
+                      loc.urdu,
+                      style: const TextStyle(color: Color(0xFF004d4d)),
+                    ),
                     leading: Radio<String>(
                       value: 'ur',
                       groupValue: currentLanguage,
@@ -203,7 +183,10 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                   ),
                   ListTile(
-                    title: Text(loc.pashto),
+                    title: Text(
+                      loc.pashto,
+                      style: const TextStyle(color: Color(0xFF004d4d)),
+                    ),
                     leading: Radio<String>(
                       value: 'ps',
                       groupValue: currentLanguage,
@@ -222,28 +205,37 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Future<void> _changeLanguage(BuildContext context, String languageCode) async {
+    final user = FirebaseAuth.instance.currentUser;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('languageCode', languageCode);
     
+    // Save language preference for the current user
+    if (user != null) {
+      await prefs.setString('languageCode_${user.uid}', languageCode);
+    } else {
+      // Fallback to global if no user (shouldn't happen, but just in case)
+      await prefs.setString('languageCode', languageCode);
+    }
+
     Locale newLocale = Locale(languageCode);
     MyApp.setLocale(context, newLocale);
-    
+
     Navigator.pop(context); // Close dialog
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
-    
+
     return Drawer(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.white, // UPDATED
       child: Column(
         children: [
-          // Enhanced Header
+          // Header
           Container(
+            width: double.infinity,
             height: 200,
             decoration: const BoxDecoration(
-              color: Colors.white,
+              color: Colors.white, // UPDATED
             ),
             child: SafeArea(
               child: Padding(
@@ -253,54 +245,16 @@ class _AppDrawerState extends State<AppDrawer> {
                   children: [
                     Row(
                       children: [
-                        Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 35,
-                              backgroundImage: _profileImageUrl != null
-                                  ? NetworkImage(_profileImageUrl!)
-                                  : null,
-                              backgroundColor: Colors.white,
-                              child: _profileImageUrl == null
-                                  ? const Icon(
-                                      Icons.person,
-                                      size: 40,
-                                      color: Colors.blueAccent,
-                                    )
-                                  : null,
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap: _changeProfilePic,
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                  ),
-                                  padding: const EdgeInsets.all(6),
-                                  child: const Icon(
-                                    Icons.camera_alt,
-                                    size: 16,
-                                    color: Colors.blueAccent,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _userName,
+                                _userName.isEmpty ? loc.guestUser : _userName,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 20,
-                                  color: Color(0xFF004d4d),
+                                  color: Color(0xFF004d4d), // UPDATED
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -308,7 +262,7 @@ class _AppDrawerState extends State<AppDrawer> {
                                 loc.customer,
                                 style: const TextStyle(
                                   fontSize: 14,
-                                  color: Color(0xFF004d4d),
+                                  color: Color(0xFF004d4d), // UPDATED
                                 ),
                               ),
                             ],
@@ -318,7 +272,8 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                     const SizedBox(height: 20),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
@@ -326,12 +281,13 @@ class _AppDrawerState extends State<AppDrawer> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.star, color: Colors.yellow, size: 16),
+                          const Icon(Icons.star,
+                              color: Color(0xFF004d4d), size: 16), // UPDATED
                           const SizedBox(width: 4),
                           Text(
                             loc.premiumMember,
                             style: const TextStyle(
-                              color: Color(0xFF004d4d),
+                              color: Color(0xFF004d4d), // UPDATED
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -345,7 +301,7 @@ class _AppDrawerState extends State<AppDrawer> {
             ),
           ),
 
-          // Menu items with enhanced styling
+          // Menu Items
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -353,14 +309,15 @@ class _AppDrawerState extends State<AppDrawer> {
                 _buildDrawerItem(
                   Icons.dashboard,
                   loc.dashboard,
-                  () => Navigator.pushReplacementNamed(context, '/customerDashboard'),
+                  () => Navigator.pushReplacementNamed(
+                      context, '/customerDashboard'),
                   isSelected: true,
                 ),
                 _buildDrawerItem(
                   Icons.person,
                   loc.profile,
                   () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Profile - Coming Soon')),
+                    SnackBar(content: Text(loc.profileComingSoon)),
                   ),
                 ),
                 _buildDrawerItem(
@@ -372,21 +329,21 @@ class _AppDrawerState extends State<AppDrawer> {
                   Icons.settings,
                   loc.settings,
                   () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Settings - Coming Soon')),
+                    SnackBar(content: Text(loc.settingsComingSoon)),
                   ),
                 ),
                 _buildDrawerItem(
                   Icons.help_outline,
                   loc.supportHelp,
                   () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Support - Coming Soon')),
+                    SnackBar(content: Text(loc.supportComingSoon)),
                   ),
                 ),
                 _buildDrawerItem(
                   Icons.info_outline,
                   loc.about,
                   () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('About - Coming Soon')),
+                    SnackBar(content: Text(loc.aboutComingSoon)),
                   ),
                 ),
                 _buildDrawerItem(
@@ -424,13 +381,13 @@ class _AppDrawerState extends State<AppDrawer> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info, size: 16, color: Colors.grey[600]),
+                Icon(Icons.info, size: 16, color: Color(0xFF004d4d)), // UPDATED
                 const SizedBox(width: 8),
                 Text(
                   '${loc.version} 1.0.0',
                   style: const TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF004d4d),
+                    color: Color(0xFF004d4d), // UPDATED
                   ),
                 ),
               ],
@@ -457,12 +414,12 @@ class _AppDrawerState extends State<AppDrawer> {
       child: ListTile(
         leading: Icon(
           icon,
-          color: isLogout ? Colors.red : const Color(0xFF004d4d),
+          color: isLogout ? Colors.red : const Color(0xFF004d4d), // UPDATED
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isLogout ? Colors.red : const Color(0xFF004d4d),
+            color: isLogout ? Colors.red : const Color(0xFF004d4d), // UPDATED
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),

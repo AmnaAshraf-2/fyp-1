@@ -5,6 +5,7 @@ import 'package:logistics_app/screens/users/enterprise/enterprise_vehicle_manage
 import 'package:logistics_app/screens/users/enterprise/enterprise_driver_management.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_new_offers.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_bookings.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise_past_bookings.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_profile.dart';
 
 class EnterpriseDrawer extends StatelessWidget {
@@ -23,7 +24,7 @@ class EnterpriseDrawer extends StatelessWidget {
       ),
       DrawerMenuItem(
         icon: Icons.local_offer,
-        title: 'New Offers',
+        title: loc.newOffers,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const EnterpriseNewOffersScreen()),
@@ -31,15 +32,23 @@ class EnterpriseDrawer extends StatelessWidget {
       ),
       DrawerMenuItem(
         icon: Icons.directions_bus,
-        title: 'Bookings',
+        title: loc.bookings,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const EnterpriseBookingsScreen()),
         ),
       ),
       DrawerMenuItem(
+        icon: Icons.history,
+        title: 'Past Bookings',
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const EnterprisePastBookingsScreen()),
+        ),
+      ),
+      DrawerMenuItem(
         icon: Icons.local_shipping,
-        title: 'Vehicle Management',
+        title: loc.vehicleManagement,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const EnterpriseVehicleManagement()),
@@ -47,7 +56,7 @@ class EnterpriseDrawer extends StatelessWidget {
       ),
       DrawerMenuItem(
         icon: Icons.people,
-        title: 'Driver Management',
+        title: loc.driverManagement,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const EnterpriseDriverManagement()),
@@ -65,14 +74,14 @@ class EnterpriseDrawer extends StatelessWidget {
         icon: Icons.settings,
         title: loc.settings,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Settings - Coming Soon')),
+          SnackBar(content: Text(loc.settingsComingSoon)),
         ),
       ),
       DrawerMenuItem(
         icon: Icons.help_outline,
         title: loc.supportHelp,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Support - Coming Soon')),
+          SnackBar(content: Text(loc.supportComingSoon)),
         ),
       ),
     ];

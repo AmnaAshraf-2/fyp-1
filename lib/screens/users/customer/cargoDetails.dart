@@ -1,16 +1,22 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:logistics_app/data/modals.dart';
-import 'package:logistics_app/data/vehicles.dart';
+import 'package:logistics_app/services/vehicle_provider.dart';
 import 'package:logistics_app/screens/users/customer/summary.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logistics_app/main.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logistics_app/screens/users/customer/location_map_view.dart';
 import 'package:logistics_app/screens/users/customer/location_picker_screen.dart';
 import 'package:logistics_app/services/fare_calculator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:logistics_app/services/audio_recorder_service.dart';
+import 'dart:io';
 
 class CargoDetailsScreen extends StatefulWidget {
   final CargoDetails? initialData;
@@ -22,29 +28,39 @@ class CargoDetailsScreen extends StatefulWidget {
 
 class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
+  final VehicleProvider _vehicleProvider = VehicleProvider();
+  List<VehicleModel> _vehicles = [];
+  String _languageCode = 'en';
 
-  // ✅ Use internal keys instead of localized text
   String loadType = 'fragile';
   String weightUnit = 'kg';
-  String vehicleType = 'Suzuki Pickup'; // Default vehicle type
+  String vehicleType = 'Suzuki Pickup';
   bool _termsAgreed = false;
+  DateTime? pickupDate;
   TimeOfDay? pickupTime;
 
   final _loadNameController = TextEditingController();
   final _weightController = TextEditingController();
-  final _quantityController = TextEditingController(text: '1'); // Default to 1
+  final _quantityController = TextEditingController(text: '1');
   final _offerFareController = TextEditingController();
   final _senderPhoneController = TextEditingController();
   final _receiverPhoneController = TextEditingController();
   final _pickupLocationController = TextEditingController();
   final _destinationLocationController = TextEditingController();
 
-  bool isPassenger = false;
   bool isInsured = false;
+
+  // Audio recording service
+  final AudioRecorderService _audioService = AudioRecorderService();
+  String? _audioNoteUrl; // Firebase Storage URL after upload
 
   @override
   void initState() {
     super.initState();
+    _loadVehicles();
+    _loadLanguageCode();
+    // Listen to locale changes
+    localeNotifier?.addListener(_onLocaleChanged);
     if (widget.initialData != null) {
       _loadNameController.text = widget.initialData!.loadName;
       _weightController.text = widget.initialData!.weight.toString();
@@ -57,54 +73,137 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
       loadType = widget.initialData!.loadType;
       weightUnit = widget.initialData!.weightUnit;
       vehicleType = widget.initialData!.vehicleType;
+      pickupDate = widget.initialData!.pickupDate;
       pickupTime = widget.initialData!.pickupTime;
       isInsured = widget.initialData!.isInsured;
+      _audioNoteUrl = widget.initialData!.audioNoteUrl;
     }
-    
-    // Add listeners to auto-calculate fare when key fields change
     _pickupLocationController.addListener(_autoCalculateFare);
     _destinationLocationController.addListener(_autoCalculateFare);
     _weightController.addListener(_autoCalculateFare);
     _weightController.addListener(_onWeightChanged);
   }
 
+  void _onLocaleChanged() {
+    _loadLanguageCode();
+  }
+
+  Future<void> _loadLanguageCode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final user = FirebaseAuth.instance.currentUser;
+      String code = 'en';
+      if (user != null) {
+        code = prefs.getString('languageCode_${user.uid}') ?? 'en';
+      } else {
+        code = prefs.getString('languageCode') ?? 'en';
+      }
+      if (mounted) {
+        setState(() {
+          _languageCode = code;
+        });
+      }
+    } catch (e) {
+      // Default to English
+    }
+  }
+
+  Future<void> _loadVehicles() async {
+    try {
+      final vehicles = await _vehicleProvider.loadVehicles();
+      if (mounted) {
+        setState(() {
+          _vehicles = vehicles;
+        });
+      }
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  String _getVehicleDisplayName(String nameKey) {
+    for (VehicleModel vehicle in _vehicles) {
+      if (vehicle.nameKey == nameKey) {
+        return vehicle.getName(_languageCode);
+      }
+    }
+    return nameKey; // Fallback to nameKey if not found
+  }
+
   @override
   void dispose() {
+    localeNotifier?.removeListener(_onLocaleChanged);
     _pickupLocationController.removeListener(_autoCalculateFare);
     _destinationLocationController.removeListener(_autoCalculateFare);
     _weightController.removeListener(_autoCalculateFare);
     _weightController.removeListener(_onWeightChanged);
+    _audioService.dispose();
     super.dispose();
   }
 
   void _onWeightChanged() {
-    // Trigger validation when weight changes
     if (_formKey.currentState != null) {
       _formKey.currentState!.validate();
     }
+    _autoCalculateQuantity(_weightController.text);
   }
 
-  // Get the maximum capacity of the selected vehicle
+  void _autoCalculateQuantity(String weightText) {
+    if (weightText.isEmpty) {
+      _quantityController.text = '1';
+      return;
+    }
+    final weight = double.tryParse(weightText);
+    if (weight == null || weight <= 0) return;
+    final maxCapacity = _getVehicleMaxCapacity();
+    if (maxCapacity == null) return;
+
+    double weightInKg = weight;
+    if (weightUnit == 'tons') {
+      weightInKg = weight * 1000;
+    }
+
+    if (weightInKg > maxCapacity) {
+      int requiredVehicles = (weightInKg / maxCapacity).ceil();
+      final currentQuantity = int.tryParse(_quantityController.text) ?? 1;
+      if (currentQuantity != requiredVehicles) {
+        _quantityController.text = requiredVehicles.toString();
+        if (mounted) {
+          final t = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                t.weightExceedsSingleVehicle(requiredVehicles.toString()),
+              ),
+              duration: const Duration(seconds: 3),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } else {
+      final currentQuantity = int.tryParse(_quantityController.text) ?? 1;
+      if (currentQuantity < 1) {
+        _quantityController.text = '1';
+      }
+    }
+  }
+
   double? _getVehicleMaxCapacity() {
-    final loc = AppLocalizations.of(context)!;
-    for (Vehicle vehicle in vehicleList) {
-      if (vehicle.getName(loc) == vehicleType) {
-        String capacityText = vehicle.getCapacity(loc);
-        // Extract numeric value from capacity text
+    for (VehicleModel vehicle in _vehicles) {
+      if (vehicle.nameKey == vehicleType) { // Match by nameKey instead of localized name
+        String capacityText = vehicle.getCapacity(_languageCode);
         RegExp regex = RegExp(r'(\d+(?:,\d+)*(?:\.\d+)?)');
         Match? match = regex.firstMatch(capacityText);
         if (match != null) {
           String numberStr = match.group(1)!.replaceAll(',', '');
           double? capacity = double.tryParse(numberStr);
           if (capacity != null) {
-            // Convert to kg if the capacity is in tons or other units
             if (capacityText.toLowerCase().contains('ton')) {
-              return capacity * 1000; // Convert tons to kg
+              return capacity * 1000;
             } else if (capacityText.toLowerCase().contains('liter')) {
-              // For liquid capacity, assume 1 liter = 1 kg for simplicity
               return capacity;
             } else {
-              // Assume it's already in kg
               return capacity;
             }
           }
@@ -112,18 +211,16 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
         break;
       }
     }
-    return null; // Return null if vehicle not found or capacity can't be parsed
+    return null;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Get vehicle type from route arguments after context is ready
     if (widget.initialData == null) {
       final args = ModalRoute.of(context)?.settings.arguments;
-      if (args != null && args is Vehicle) {
-        final loc = AppLocalizations.of(context)!;
-        vehicleType = args.getName(loc);
+      if (args != null && args is VehicleModel) {
+        vehicleType = args.nameKey; // Store nameKey instead of localized name
       }
     }
   }
@@ -131,15 +228,12 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-
-    // ✅ Map of internal keys to localized labels
     final Map<String, String> loadTypeLabels = {
       'fragile': t.fragile,
       'heavy': t.heavy,
       'perishable': t.perishable,
       'general': t.generalGoods,
     };
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -151,56 +245,253 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.teal),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               _buildTextField(t.loadName, _loadNameController),
-               _buildWeightField(t),
-               _buildDropdown(t, loadTypeLabels),
-               _buildTextField(t.loadDimensions, null, TextInputType.text, false),
-               _buildPhoneField(t.senderPhoneNumber, _senderPhoneController),
-               _buildPhoneField(t.receiverPhoneNumber, _receiverPhoneController),
-               _buildLocationField(t.pickupLocation, _pickupLocationController),
-               _buildLocationField(t.destinationLocation, _destinationLocationController),
-               _buildTextField(
-                   t.quantityOfVehicles, _quantityController, TextInputType.number, true),
-               _buildTimePicker(t),
-              _buildFareField(t),
-              _buildCheckboxes(t),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _onSubmit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: Text(
-                    t.continueToSummary,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+              _sectionTitle(t.cargoDetailsSection),
+              _card(
+                Column(
+                  children: [
+                    _buildTextField(t.loadName, _loadNameController),
+                    _buildDropdown(t, loadTypeLabels),
+                    _buildTextField(t.loadDimensions, null, TextInputType.text, false),
+                  ],
                 ),
               ),
+              _sectionTitle(t.weightVehicleSection),
+              _card(
+                Column(
+                  children: [
+                    _buildWeightField(t),
+                    _capacityIndicator(t),
+                    const SizedBox(height: 8),
+                    _infoTile(
+                      title: t.vehicleType,
+                      value: _getVehicleDisplayName(vehicleType),
+                      icon: Icons.local_shipping,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildTextField(t.quantityOfVehicles, _quantityController, TextInputType.number, true),
+                  ],
+                ),
+              ),
+              _sectionTitle(t.contactDetailsSection),
+              _card(
+                Column(
+                  children: [
+                    _buildPhoneField(t.senderPhoneNumber, _senderPhoneController),
+                    _buildPhoneField(t.receiverPhoneNumber, _receiverPhoneController),
+                  ],
+                ),
+              ),
+              _sectionTitle(t.locationsSection),
+              _card(
+                Column(
+                  children: [
+                    _buildLocationField(t.pickupLocation, _pickupLocationController),
+                    _buildLocationField(t.destinationLocation, _destinationLocationController),
+                  ],
+                ),
+              ),
+              _sectionTitle(t.scheduleSection),
+              _card(
+                Column(
+                  children: [
+                    _buildDatePicker(t),
+                    _buildTimePicker(t),
+                  ],
+                ),
+              ),
+              _sectionTitle(t.fareInsuranceSection),
+              _card(
+                Column(
+                  children: [
+                    _buildFareField(t),
+                    _buildCheckboxes(t),
+                  ],
+                ),
+              ),
+              _sectionTitle('Audio Note'), // TODO: Add to localization
+              _card(
+                _buildAudioNoteSection(t),
+              ),
+              const SizedBox(height: 80),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _onSubmit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 4,
+              ),
+              child: Text(
+                t.continueToSummary,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 6, top: 20),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: Colors.teal,
+        ),
+      ),
+    );
+  }
+
+  Widget _card(Widget child) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _infoTile({required String title, required String value, required IconData icon}) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.teal, size: 28),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF004d4d),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _capacityIndicator(AppLocalizations t) {
+    final maxCapacity = _getVehicleMaxCapacity();
+    final currentWeight = double.tryParse(_weightController.text);
+    final quantity = int.tryParse(_quantityController.text) ?? 1;
+    
+    double capacityPercentage = 0.0;
+    if (maxCapacity != null && currentWeight != null) {
+      double weightInKg = currentWeight;
+      if (weightUnit == 'tons') weightInKg = currentWeight * 1000;
+      final totalCapacity = maxCapacity * quantity;
+      capacityPercentage = (weightInKg / totalCapacity).clamp(0.0, 1.0);
+    }
+
+    Color progressColor = Colors.green;
+    if (capacityPercentage > 0.9) {
+      progressColor = Colors.red;
+    } else if (capacityPercentage > 0.7) {
+      progressColor = Colors.orange;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              t.capacityStatus,
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            if (maxCapacity != null && currentWeight != null)
+              Text(
+                "${(capacityPercentage * 100).toStringAsFixed(0)}%",
+                style: TextStyle(
+                  color: progressColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: LinearProgressIndicator(
+            value: capacityPercentage,
+            backgroundColor: Colors.grey.shade300,
+            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+            minHeight: 8,
+          ),
+        ),
+        if (maxCapacity != null && currentWeight != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _getWeightHelperText(),
+            style: TextStyle(
+              fontSize: 12,
+              color: capacityPercentage > 0.9 ? Colors.red : Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildTextField(String label, TextEditingController? controller,
       [TextInputType inputType = TextInputType.text, bool isRequired = true]) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: controller,
         keyboardType: inputType,
@@ -241,9 +532,11 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
   }
 
   Widget _buildPhoneField(String label, TextEditingController controller) {
+    final t = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: TextFormField(
@@ -255,7 +548,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
               decoration: InputDecoration(
                 labelText: label,
                 labelStyle: const TextStyle(color: Colors.teal),
-                hintText: 'e.g., 03001234567',
+                hintText: t.phoneNumberExample,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Colors.teal),
@@ -277,12 +570,13 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                   borderSide: const BorderSide(color: Colors.red, width: 2),
                 ),
                 prefixIcon: const Icon(Icons.phone, color: Colors.teal),
-                helperText: 'Format: 03XX-XXXXXXX or 0XXX-XXXXXXX',
+                helperText: t.phoneNumberFormat,
                 helperMaxLines: 2,
                 helperStyle: const TextStyle(color: Colors.grey),
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                isDense: true,
               ),
               style: const TextStyle(color: Colors.black87),
               validator: (value) {
@@ -295,6 +589,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
           ),
           const SizedBox(width: 8),
           Container(
+            height: 54, // Match the height of TextFormField
             decoration: BoxDecoration(
               color: Colors.teal.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
@@ -303,7 +598,8 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
             child: IconButton(
               icon: const Icon(Icons.contacts, color: Colors.teal),
               onPressed: () => _pickContact(controller),
-              tooltip: 'Select from contacts',
+              tooltip: t.selectFromContacts,
+              padding: EdgeInsets.zero,
             ),
           ),
         ],
@@ -312,81 +608,39 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
   }
 
   String? _validatePhoneNumber(String phoneNumber) {
-    // Remove any spaces, dashes, or other formatting
+    final t = AppLocalizations.of(context)!;
     String cleaned = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)]'), '');
-    
-    // Check if empty
-    if (cleaned.isEmpty) {
-      return 'Phone number is required';
-    }
-    
-    // Check if it contains only digits
-    if (!RegExp(r'^\d+$').hasMatch(cleaned)) {
-      return 'Phone number must contain only digits';
-    }
-    
-    // Check if it starts with 0
-    if (!cleaned.startsWith('0')) {
-      return 'Phone number must start with 0';
-    }
-    
-    // Check for valid length (Pakistani numbers are 11 digits)
-    if (cleaned.length != 11) {
-      return 'Phone number must be exactly 11 digits (e.g., 03001234567)';
-    }
-    
-    // Validate Pakistani mobile number prefixes (03XX, 04XX, 05XX)
+    if (cleaned.isEmpty) return t.phoneNumberRequired;
+    if (!RegExp(r'^\d+$').hasMatch(cleaned)) return t.phoneNumberOnlyDigits;
+    if (!cleaned.startsWith('0')) return t.phoneNumberMustStartWith0;
+    if (cleaned.length != 11) return t.phoneNumberMustBe11Digits;
     String prefix = cleaned.substring(0, 2);
     String firstFour = cleaned.substring(0, 4);
-    
-    // Validate mobile number prefixes
     if (prefix == '03') {
-      // Check if it's a valid 03XX prefix (0300-0399)
       int prefixNum = int.tryParse(firstFour) ?? 0;
-      if (prefixNum < 300 || prefixNum > 399) {
-        return 'Invalid mobile number prefix. Must be 03XX (e.g., 0300-0399)';
-      }
+      if (prefixNum < 300 || prefixNum > 399) return t.invalidMobilePrefix03XX;
     } else if (prefix == '04') {
-      // Check if it's a valid 04XX prefix (0400-0499)
       int prefixNum = int.tryParse(firstFour) ?? 0;
-      if (prefixNum < 400 || prefixNum > 499) {
-        return 'Invalid mobile number prefix. Must be 04XX (e.g., 0400-0499)';
-      }
+      if (prefixNum < 400 || prefixNum > 499) return t.invalidMobilePrefix04XX;
     } else if (prefix == '05') {
-      // Check if it's a valid 05XX prefix (0500-0599)
       int prefixNum = int.tryParse(firstFour) ?? 0;
-      if (prefixNum < 500 || prefixNum > 599) {
-        return 'Invalid mobile number prefix. Must be 05XX (e.g., 0500-0599)';
-      }
+      if (prefixNum < 500 || prefixNum > 599) return t.invalidMobilePrefix05XX;
     } else if (prefix == '02' || prefix == '01') {
-      // Landline numbers (021, 022, etc.) - allow them
-      return null; // Valid landline number
+      return null;
     } else {
-      return 'Invalid phone number format. Must start with 03, 04, or 05 for mobile numbers';
+      return t.invalidPhoneFormat;
     }
-    
-    // Additional check: Ensure the remaining digits are valid (7 digits after prefix)
     String remainingDigits = cleaned.substring(4);
-    if (remainingDigits.length != 7) {
-      return 'Invalid phone number format. After prefix, must have 7 digits';
-    }
-    
-    // Check if remaining digits are all the same (likely invalid, e.g., 0000000, 1111111)
-    if (RegExp(r'^(\d)\1{6}$').hasMatch(remainingDigits)) {
-      return 'Phone number appears to be invalid (all digits are the same)';
-    }
-    
-    // Check if remaining digits are all zeros
-    if (remainingDigits == '0000000') {
-      return 'Phone number appears to be invalid';
-    }
-    
-    return null; // Valid phone number
+    if (remainingDigits.length != 7) return t.invalidPhoneFormatAfterPrefix;
+    if (RegExp(r'^(\d)\1{6}$').hasMatch(remainingDigits)) return t.phoneNumberAllSameDigits;
+    if (remainingDigits == '0000000') return t.phoneNumberInvalid;
+    return null;
   }
 
   Widget _buildLocationField(String label, TextEditingController controller) {
+    final t = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         onTap: () async {
           final result = await Navigator.push<String>(
@@ -394,18 +648,13 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
             MaterialPageRoute(
               builder: (context) => LocationPickerScreen(
                 title: label,
-                initialValue: controller.text.trim().isNotEmpty
-                    ? controller.text.trim()
-                    : null,
+                initialValue: controller.text.trim().isNotEmpty ? controller.text.trim() : null,
               ),
             ),
           );
-
           if (result != null && mounted) {
             controller.text = result;
-            // Trigger validation
             _formKey.currentState?.validate();
-            // Trigger fare calculation if needed
             _autoCalculateFare();
           }
         },
@@ -429,15 +678,14 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
             ),
             prefixIcon: const Icon(Icons.location_on, color: Colors.teal),
             suffixIcon: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.teal),
-            hintText: 'Tap to choose location',
+            hintText: t.tapToChooseLocation,
             hintStyle: const TextStyle(color: Colors.grey),
             filled: true,
             fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           style: const TextStyle(color: Colors.black87),
-          validator: (value) =>
-              (value == null || value.isEmpty) ? AppLocalizations.of(context)!.required : null,
+          validator: (value) => (value == null || value.isEmpty) ? AppLocalizations.of(context)!.required : null,
         ),
       ),
     );
@@ -445,13 +693,12 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
 
   Widget _buildWeightField(AppLocalizations t) {
     final maxCapacity = _getVehicleMaxCapacity();
-    final maxCapacityInSelectedUnit = maxCapacity != null
-        ? (weightUnit == 'tons' ? maxCapacity / 1000 : maxCapacity)
-        : null;
+    final maxCapacityInSelectedUnit = maxCapacity != null ? (weightUnit == 'tons' ? maxCapacity / 1000 : maxCapacity) : null;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 3,
@@ -460,15 +707,11 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
               keyboardType: TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                // Prevent entering values that exceed capacity
                 if (maxCapacityInSelectedUnit != null)
                   TextInputFormatter.withFunction((oldValue, newValue) {
-                    if (newValue.text.isEmpty) {
-                      return newValue;
-                    }
+                    if (newValue.text.isEmpty) return newValue;
                     final enteredValue = double.tryParse(newValue.text);
                     if (enteredValue != null && enteredValue > maxCapacityInSelectedUnit) {
-                      // Show error but allow typing (validation will catch it)
                       return newValue;
                     }
                     return newValue;
@@ -506,45 +749,30 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                isDense: true,
               ),
               style: const TextStyle(color: Colors.black87),
               onChanged: (value) {
-                // Update helper text and trigger validation in real-time
-                setState(() {
-                  // Helper text will update automatically via _getWeightHelperText()
-                });
+                setState(() {});
+                _autoCalculateQuantity(value);
                 if (_formKey.currentState != null) {
                   _formKey.currentState!.validate();
                 }
               },
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return t.required;
-                }
-                
+                if (value == null || value.isEmpty) return t.required;
                 final weight = double.tryParse(value);
-                if (weight == null || weight <= 0) {
-                  return 'Please enter a valid weight';
-                }
-                
-                // Check if weight exceeds vehicle capacity
+                if (weight == null || weight <= 0) return t.pleaseEnterValidWeight;
                 if (maxCapacity != null) {
                   double weightInKg = weight;
-                  if (weightUnit == 'tons') {
-                    weightInKg = weight * 1000; // Convert tons to kg
-                  }
-                  
-                  if (weightInKg > maxCapacity) {
-                    return 'Weight exceeds vehicle capacity!\nMaximum: ${maxCapacity.toInt()} kg (${(maxCapacity / 1000).toStringAsFixed(1)} tons)';
-                  }
-                  
-                  // Warn if approaching capacity (within 10%)
-                  if (weightInKg > maxCapacity * 0.9) {
-                    // This is just a warning, not an error
-                    // We'll show it in helper text instead
+                  if (weightUnit == 'tons') weightInKg = weight * 1000;
+                  final quantity = int.tryParse(_quantityController.text) ?? 1;
+                  final totalCapacity = maxCapacity * quantity;
+                  if (weightInKg > totalCapacity) {
+                    final requiredVehicles = (weightInKg / maxCapacity).ceil();
+                    return '${t.weightExceedsCapacity}\n${t.requiredVehicles}: $requiredVehicles ${t.vehicles}\n${t.currentVehicles}: $quantity ${t.vehicles}';
                   }
                 }
-                
                 return null;
               },
             ),
@@ -558,14 +786,13 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
               onChanged: (value) {
                 setState(() {
                   weightUnit = value!;
-                  // Helper text will update automatically via _getWeightHelperText()
                 });
-                // Trigger validation when unit changes
                 _formKey.currentState?.validate();
               },
-              items: ['kg', 'tons']
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
+              items: [
+                DropdownMenuItem(value: 'kg', child: Text(t.kg)),
+                DropdownMenuItem(value: 'tons', child: Text(t.tons)),
+              ],
               decoration: InputDecoration(
                 labelText: t.unit,
                 labelStyle: const TextStyle(color: Colors.teal),
@@ -584,6 +811,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                 filled: true,
                 fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                isDense: true,
               ),
               dropdownColor: Colors.white,
               style: const TextStyle(color: Colors.black87),
@@ -596,42 +824,47 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
   }
 
   String _getWeightHelperText() {
+    final t = AppLocalizations.of(context)!;
     final maxCapacity = _getVehicleMaxCapacity();
     if (maxCapacity != null) {
       final currentWeight = double.tryParse(_weightController.text);
+      final quantity = int.tryParse(_quantityController.text) ?? 1;
+      final totalCapacity = maxCapacity * quantity;
       if (currentWeight != null) {
         double weightInKg = currentWeight;
-        if (weightUnit == 'tons') {
-          weightInKg = currentWeight * 1000;
-        }
-        
-        if (weightInKg > maxCapacity) {
-          return '⚠️ Exceeds capacity! Max: ${maxCapacity.toInt()} kg';
-        } else if (weightInKg > maxCapacity * 0.9) {
-          return '⚠️ Approaching capacity limit. Max: ${maxCapacity.toInt()} kg';
+        if (weightUnit == 'tons') weightInKg = currentWeight * 1000;
+        if (weightInKg > totalCapacity) {
+          final requiredVehicles = (weightInKg / maxCapacity).ceil();
+          return '⚠️ ${t.exceedsCapacityNeed} $requiredVehicles ${t.vehicles} (${(requiredVehicles * maxCapacity).toInt()} ${t.kg} ${t.totalCapacity})';
+        } else if (weightInKg > totalCapacity * 0.9) {
+          return '⚠️ ${t.approachingCapacityLimit}: ${totalCapacity.toInt()} ${t.kg} ($quantity ${t.vehicles})';
         } else {
-          final remaining = maxCapacity - weightInKg;
-          return 'Maximum capacity: ${maxCapacity.toInt()} kg (${remaining.toInt()} kg remaining)';
+          final remaining = totalCapacity - weightInKg;
+          if (quantity > 1) {
+            return '${t.totalCapacity}: ${totalCapacity.toInt()} ${t.kg} ($quantity ${t.vehicles} × ${maxCapacity.toInt()} ${t.kg} each) - ${remaining.toInt()} ${t.kg} ${t.remaining}';
+          } else {
+            return '${t.maximumCapacity}: ${maxCapacity.toInt()} ${t.kg} (${remaining.toInt()} ${t.kg} ${t.remaining})';
+          }
         }
       }
-      return 'Maximum capacity: ${maxCapacity.toInt()} kg (${(maxCapacity / 1000).toStringAsFixed(1)} tons)';
+      if (quantity > 1) {
+        return '${t.totalCapacity}: ${totalCapacity.toInt()} ${t.kg} ($quantity ${t.vehicles} × ${maxCapacity.toInt()} ${t.kg} each)';
+      }
+      return '${t.maximumCapacity}: ${maxCapacity.toInt()} ${t.kg} (${(maxCapacity / 1000).toStringAsFixed(1)} ${t.tons})';
     }
     return '';
   }
 
   Widget _buildDropdown(AppLocalizations t, Map<String, String> loadTypeLabels) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: DropdownButtonFormField<String>(
         key: const Key('loadTypeDropdown'),
         value: loadType,
         onChanged: (value) => setState(() => loadType = value!),
-        items: loadTypeLabels.entries.map((entry) {
-          return DropdownMenuItem(
-            value: entry.key,
-            child: Text(entry.value),
-          );
-        }).toList(),
+        items: loadTypeLabels.entries
+            .map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value)))
+            .toList(),
         decoration: InputDecoration(
           labelText: t.loadType,
           labelStyle: const TextStyle(color: Colors.teal),
@@ -658,9 +891,9 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
     );
   }
 
-  Widget _buildTimePicker(AppLocalizations t) {
+  Widget _buildDatePicker(AppLocalizations t) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -670,7 +903,71 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Row(
           children: [
-            const Icon(Icons.access_time, color: Colors.teal),
+            Icon(Icons.calendar_today, color: Colors.teal.shade800),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                pickupDate == null
+                    ? t.pickupDateNotSelected
+                    : '${t.pickupDate}: ${_formatDate(pickupDate!)}',
+                style: TextStyle(
+                  color: pickupDate == null ? Colors.grey : Colors.teal.shade800,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: Colors.teal,
+                          onPrimary: Colors.white,
+                          surface: Colors.white,
+                          onSurface: Colors.black87,
+                        ),
+                        dialogBackgroundColor: Colors.white,
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (date != null) setState(() => pickupDate = date);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal.shade800,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text(t.selectDate),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
+
+  Widget _buildTimePicker(AppLocalizations t) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.teal, width: 1.5),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          children: [
+            Icon(Icons.access_time, color: Colors.teal.shade800),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -678,7 +975,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                     ? t.pickupTimeNotSelected
                     : '${t.pickupTime}: ${pickupTime!.format(context)}',
                 style: TextStyle(
-                  color: pickupTime == null ? Colors.grey : Colors.black87,
+                  color: pickupTime == null ? Colors.grey : Colors.teal.shade800,
                   fontSize: 16,
                 ),
               ),
@@ -688,17 +985,27 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                 final time = await showTimePicker(
                   context: context,
                   initialTime: TimeOfDay.now(),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: Colors.teal,
+                          onPrimary: Colors.white,
+                          surface: Colors.white,
+                          onSurface: Colors.black87,
+                        ),
+                        dialogBackgroundColor: Colors.white,
+                      ),
+                      child: child!,
+                    );
+                  },
                 );
-                if (time != null) {
-                  setState(() => pickupTime = time);
-                }
+                if (time != null) setState(() => pickupTime = time);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
+                backgroundColor: Colors.teal.shade800,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: Text(t.selectTime),
             )
@@ -720,10 +1027,13 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
           child: CheckboxListTile(
             title: Text(
               t.cargoInsured,
-              style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w500),
+              style: const TextStyle(color: Color(0xFF004d4d), fontWeight: FontWeight.w500),
             ),
             value: isInsured,
             activeColor: Colors.teal,
+            checkColor: Colors.white,
+            fillColor: MaterialStateProperty.all(Colors.teal),
+            side: const BorderSide(color: Colors.teal, width: 2),
             onChanged: (value) {
               setState(() {
                 isInsured = value ?? false;
@@ -740,6 +1050,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
 
   Widget _buildPolicyCard(String text, AppLocalizations t) {
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 10),
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -753,16 +1064,19 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
           children: [
             Text(
               text,
-              style: const TextStyle(color: Colors.black87, fontSize: 14),
+              style: const TextStyle(color: Color(0xFF004d4d), fontSize: 14),
             ),
             const SizedBox(height: 8),
             CheckboxListTile(
               title: Text(
                 t.agreeTerms,
-                style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w500),
+                style: const TextStyle(color: Color(0xFF004d4d), fontWeight: FontWeight.w500),
               ),
               value: _termsAgreed,
               activeColor: Colors.teal,
+              checkColor: Colors.white,
+              fillColor: MaterialStateProperty.all(Colors.teal),
+              side: const BorderSide(color: Colors.teal, width: 2),
               contentPadding: EdgeInsets.zero,
               onChanged: (val) => setState(() => _termsAgreed = val ?? false),
             ),
@@ -774,102 +1088,92 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
 
   void _onSubmit() {
     final t = AppLocalizations.of(context)!;
-
     if (!_formKey.currentState!.validate()) return;
-
     if (!_termsAgreed) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t.pleaseAgree)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.pleaseAgree)));
       return;
     }
-
     final weight = double.tryParse(_weightController.text.trim());
     final offerFare = double.tryParse(_offerFareController.text.trim());
-
     if (weight == null || offerFare == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t.invalidValues)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.invalidValues)));
       return;
     }
-
-    // Additional weight capacity validation before proceeding
     final maxCapacity = _getVehicleMaxCapacity();
     if (maxCapacity != null) {
       double weightInKg = weight;
-      if (weightUnit == 'tons') {
-        weightInKg = weight * 1000; // Convert tons to kg
-      }
-      
-      if (weightInKg > maxCapacity) {
+      if (weightUnit == 'tons') weightInKg = weight * 1000;
+      final quantity = int.tryParse(_quantityController.text) ?? 1;
+      final totalCapacity = maxCapacity * quantity;
+      if (weightInKg > totalCapacity) {
+        final requiredVehicles = (weightInKg / maxCapacity).ceil();
+        final t = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Weight exceeds vehicle capacity (${maxCapacity.toInt()} kg). Please reduce the weight or select a different vehicle.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
+            content: Text(t.weightExceedsCapacityAutoUpdate(requiredVehicles.toString(), quantity.toString())),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
           ),
         );
+        _quantityController.text = requiredVehicles.toString();
         return;
       }
     }
-
-    // Validate quantity and proceed directly to summary
     final quantity = int.tryParse(_quantityController.text.trim());
     if (quantity == null || quantity < 1) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Please enter a valid quantity (minimum 1)')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.pleaseEnterValidQuantity)));
       return;
     }
     _navigateToSummary(weight, offerFare);
   }
 
   void _navigateToSummary(double weight, double offerFare) {
-    // Final weight capacity validation before navigating to summary
+    final t = AppLocalizations.of(context)!;
     final maxCapacity = _getVehicleMaxCapacity();
     if (maxCapacity != null) {
       double weightInKg = weight;
-      if (weightUnit == 'tons') {
-        weightInKg = weight * 1000; // Convert tons to kg
-      }
-      
-      if (weightInKg > maxCapacity) {
+      if (weightUnit == 'tons') weightInKg = weight * 1000;
+      final quantity = int.tryParse(_quantityController.text) ?? 1;
+      final totalCapacity = maxCapacity * quantity;
+      if (weightInKg > totalCapacity) {
+        final requiredVehicles = (weightInKg / maxCapacity).ceil();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Weight exceeds vehicle capacity (${maxCapacity.toInt()} kg). Please reduce the weight or select a different vehicle.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
+            content: Text(t.weightExceedsCapacityAutoUpdate(requiredVehicles.toString(), quantity.toString())),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
           ),
         );
+        _quantityController.text = requiredVehicles.toString();
         return;
       }
     }
-
-    // Parse quantity
-    final quantity = int.tryParse(_quantityController.text.trim());
-    if (quantity == null || quantity < 1) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Please enter a valid quantity (minimum 1)')));
+    final quantity = int.tryParse(_quantityController.text) ?? 1;
+    if (quantity < 1) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.pleaseEnterValidQuantity)));
       return;
     }
-
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => SummaryScreen(
           initialDetails: CargoDetails(
             loadName: _loadNameController.text.trim(),
-            loadType: loadType, // internal key (e.g., 'fragile')
+            loadType: loadType,
             weight: weight,
             weightUnit: weightUnit,
             quantity: quantity,
+            pickupDate: pickupDate,
             pickupTime: pickupTime,
             offerFare: offerFare,
             isInsured: isInsured,
             vehicleType: vehicleType,
-            isEnterprise: false, // Default to false, can be changed later if needed
+            isEnterprise: false,
             senderPhone: _senderPhoneController.text.trim(),
             receiverPhone: _receiverPhoneController.text.trim(),
             pickupLocation: _pickupLocationController.text.trim(),
             destinationLocation: _destinationLocationController.text.trim(),
+            audioNoteUrl: _audioNoteUrl,
           ),
         ),
       ),
@@ -878,24 +1182,20 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
 
   Widget _buildFareField(AppLocalizations t) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             t.offerFare,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.teal,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.teal),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _offerFareController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              hintText: 'Fare',
+              hintText: t.fare,
               hintStyle: const TextStyle(color: Colors.grey),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -925,12 +1225,8 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
             ),
             style: const TextStyle(color: Colors.black87),
             validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter fare amount';
-              }
-              if (double.tryParse(value.trim()) == null) {
-                return 'Please enter valid amount';
-              }
+              if (value == null || value.trim().isEmpty) return t.pleaseEnterFareAmount;
+              if (double.tryParse(value.trim()) == null) return t.pleaseEnterValidAmount;
               return null;
             },
           ),
@@ -940,18 +1236,13 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
   }
 
   void _autoCalculateFare() {
-    // Only auto-calculate if all required fields are filled
     if (_pickupLocationController.text.trim().isNotEmpty &&
         _destinationLocationController.text.trim().isNotEmpty &&
         _weightController.text.trim().isNotEmpty) {
-      
       final weight = double.tryParse(_weightController.text.trim());
       if (weight != null) {
-        // Debounce the calculation to avoid too many calls
         Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _calculateFareSilently();
-          }
+          if (mounted) _calculateFareSilently();
         });
       }
     }
@@ -961,9 +1252,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
     try {
       final weight = double.tryParse(_weightController.text.trim());
       if (weight == null) return;
-
-      // Calculate suggested fare
-      double suggestedFare = await FareCalculator.calculateSuggestedFare(
+      Map<String, dynamic> fareData = await FareCalculator.calculateFareWithCommission(
         pickupLocation: _pickupLocationController.text.trim(),
         destinationLocation: _destinationLocationController.text.trim(),
         weight: weight,
@@ -972,63 +1261,262 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
         vehicleType: vehicleType,
         isInsured: isInsured,
       );
-
-      // Fill the fare field with calculated amount
-      _offerFareController.text = suggestedFare.toStringAsFixed(0);
+      if (fareData.containsKey('error')) {
+        print('Auto-calculation error: ${fareData['error']}');
+        return;
+      }
+      double finalFare = fareData['finalFare'] ?? 0.0;
+      _offerFareController.text = finalFare.toStringAsFixed(0);
     } catch (e) {
-      // Silently handle errors for auto-calculation
       print('Auto-calculation error: $e');
     }
   }
 
-  Future<void> _calculateFare() async {
-    // Validate required fields for fare calculation
-    if (_pickupLocationController.text.trim().isEmpty ||
-        _destinationLocationController.text.trim().isEmpty ||
-        _weightController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill pickup location, destination, and weight first'),
+  Widget _buildAudioNoteSection(AppLocalizations t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Audio Note (Optional)',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.teal,
+          ),
         ),
-      );
-      return;
-    }
+        const SizedBox(height: 12),
+        
+        // Record button (when not recording and no audio)
+        if (!_audioService.isRecording && _audioService.path == null && _audioNoteUrl == null)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.mic, color: Colors.white),
+              label: const Text(
+                'Record Audio Note',
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                final success = await _audioService.startRecording();
+                if (success) {
+                  setState(() {});
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to start recording. Please check microphone permissions.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ),
 
-    final weight = double.tryParse(_weightController.text.trim());
-    if (weight == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid weight')),
-      );
-      return;
-    }
+        // Stop recording button
+        if (_audioService.isRecording)
+          Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.stop, color: Colors.white),
+                  label: const Text(
+                    'Stop Recording',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
+                    await _audioService.stopRecording();
+                    setState(() {});
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    StreamBuilder<Duration>(
+                      stream: Stream.periodic(const Duration(seconds: 1), (i) {
+                        return _audioService.getRecordingDuration() ?? Duration.zero;
+                      }),
+                      builder: (context, snapshot) {
+                        final duration = snapshot.data ?? Duration.zero;
+                        return Text(
+                          _formatDuration(duration),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
 
-    try {
-      // Calculate suggested fare
-      double suggestedFare = await FareCalculator.calculateSuggestedFare(
-        pickupLocation: _pickupLocationController.text.trim(),
-        destinationLocation: _destinationLocationController.text.trim(),
-        weight: weight,
-        weightUnit: weightUnit,
-        cargoType: loadType,
-        vehicleType: vehicleType,
-        isInsured: isInsured,
-      );
+        // Preview + Upload (when recording stopped but not uploaded)
+        if (!_audioService.isRecording && _audioService.path != null && _audioNoteUrl == null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.teal.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.teal, width: 1),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        _audioService.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.teal,
+                        size: 32,
+                      ),
+                      onPressed: () async {
+                        try {
+                          await _audioService.play();
+                          setState(() {});
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error playing audio: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 28),
+                      onPressed: () {
+                        _audioService.deleteRecording();
+                        setState(() {});
+                      },
+                    ),
+                    const Spacer(),
+                    ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Uploading audio note...'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                          final url = await _audioService.upload();
+                          if (mounted) {
+                            setState(() {
+                              _audioNoteUrl = url;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Audio note uploaded successfully!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error uploading audio: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Upload'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
 
-      // Fill the fare field with calculated amount
-      _offerFareController.text = suggestedFare.toStringAsFixed(0);
-      
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Estimated fare: Rs ${suggestedFare.toStringAsFixed(0)}'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error calculating fare: $e')),
-      );
-    }
+        // Uploaded success indicator
+        if (_audioNoteUrl != null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green, width: 1),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green),
+                const SizedBox(width: 8),
+                const Text(
+                  'Audio note attached',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _audioNoteUrl = null;
+                      _audioService.deleteRecording();
+                    });
+                  },
+                  child: const Text('Remove', style: TextStyle(color: Colors.red)),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 
   Future<void> _pickContact(TextEditingController controller) async {
@@ -1037,28 +1525,17 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
       final contact = await FlutterContacts.openExternalPick();
       if (contact != null && contact.phones.isNotEmpty) {
         String phoneNumber = contact.phones.first.number;
-        
-        // Clean and format the phone number
         String cleaned = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)]'), '');
-        
-        // Remove country code if present (e.g., +92 becomes 0)
-        if (cleaned.startsWith('92')) {
-          cleaned = '0' + cleaned.substring(2);
-        }
-        
-        // Remove + sign if present
+        if (cleaned.startsWith('92')) cleaned = '0' + cleaned.substring(2);
         cleaned = cleaned.replaceAll('+', '');
-        
-        // Validate and set the phone number
         if (cleaned.isNotEmpty) {
           controller.text = cleaned;
-          // Trigger validation after setting the number
           _formKey.currentState?.validate();
         }
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contacts permission denied')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.contactsPermissionDenied)),
       );
     }
   }

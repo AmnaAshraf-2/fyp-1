@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class LocationMapView extends StatefulWidget {
   final String address;
@@ -32,7 +33,6 @@ class _LocationMapViewState extends State<LocationMapView> {
     if (widget.address.isEmpty) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'No address provided';
       });
       return;
     }
@@ -51,13 +51,11 @@ class _LocationMapViewState extends State<LocationMapView> {
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Location not found for this address';
         });
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Error finding location: ${e.toString()}';
       });
     }
   }
@@ -76,7 +74,7 @@ class _LocationMapViewState extends State<LocationMapView> {
           ? const Center(
               child: CircularProgressIndicator(),
             )
-          : _errorMessage != null
+          : _errorMessage != null || widget.address.isEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -90,7 +88,9 @@ class _LocationMapViewState extends State<LocationMapView> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          _errorMessage!,
+                          widget.address.isEmpty
+                              ? AppLocalizations.of(context)!.noAddressProvided
+                              : _errorMessage ?? AppLocalizations.of(context)!.locationNotFound,
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontSize: 16, color: Color(0xFF004d4d)),
                         ),
@@ -99,7 +99,7 @@ class _LocationMapViewState extends State<LocationMapView> {
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Go Back'),
+                          child: Text(AppLocalizations.of(context)!.goBack),
                         ),
                       ],
                     ),
@@ -141,6 +141,7 @@ class _LocationMapViewState extends State<LocationMapView> {
                       left: 16,
                       right: 16,
                       child: Card(
+                        color: Colors.white,
                         elevation: 4,
                         child: Padding(
                           padding: const EdgeInsets.all(12.0),

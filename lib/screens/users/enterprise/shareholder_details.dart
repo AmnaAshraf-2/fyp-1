@@ -6,6 +6,8 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'enterprise_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../customer/customerDashboard.dart';
+import 'package:logistics_app/services/location_permission_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ShareholderDetailsScreen extends StatefulWidget {
   const ShareholderDetailsScreen({super.key});
@@ -35,14 +37,16 @@ class _ShareholderDetailsScreenState extends State<ShareholderDetailsScreen> {
   List<Map<String, dynamic>> _shareholders = [];
   String? _selectedDesignation;
 
-  final List<String> _designations = [
-    'CEO',
-    'Managing Director',
-    'Director',
-    'Shareholder',
-    'Partner',
-    'Other'
-  ];
+  List<String> _getDesignations(AppLocalizations t) {
+    return [
+      t.ceo,
+      t.managingDirector,
+      t.director,
+      t.shareholder,
+      t.partner,
+      t.other
+    ];
+  }
 
   @override
   void initState() {
@@ -163,15 +167,24 @@ class _ShareholderDetailsScreenState extends State<ShareholderDetailsScreen> {
         ),
       );
 
+      // Request location permission for enterprises (needed to show nearby customers)
+      if (mounted && !kIsWeb) {
+        final locationService = LocationPermissionService();
+        await locationService.requestLocationPermission(context);
+      }
+
       // Navigate to enterprise dashboard
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const EnterpriseDashboard()),
-        (route) => false,
-      );
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const EnterpriseDashboard()),
+          (route) => false,
+        );
+      }
     } catch (e) {
+      final loc = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('${loc.error}: $e')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -367,7 +380,7 @@ class _ShareholderDetailsScreenState extends State<ShareholderDetailsScreen> {
                         prefixIcon: const Icon(Icons.work),
                         border: const OutlineInputBorder(),
                       ),
-                      items: _designations.map((String designation) {
+                      items: _getDesignations(loc).map((String designation) {
                         return DropdownMenuItem<String>(
                           value: designation,
                           child: Text(designation),
@@ -416,6 +429,7 @@ class _ShareholderDetailsScreenState extends State<ShareholderDetailsScreen> {
                 ...List.generate(_shareholders.length, (index) {
                   final shareholder = _shareholders[index];
                   return Card(
+                    color: Colors.white,
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
                       leading: CircleAvatar(
@@ -435,8 +449,8 @@ class _ShareholderDetailsScreenState extends State<ShareholderDetailsScreen> {
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('CNIC: ${shareholder['cnic']}', style: const TextStyle(color: Color(0xFF004d4d))),
-                          Text('Phone: ${shareholder['phone']}', style: const TextStyle(color: Color(0xFF004d4d))),
+                          Text('${loc.cnic}: ${shareholder['cnic']}', style: const TextStyle(color: Color(0xFF004d4d))),
+                          Text('${loc.phoneNumber}: ${shareholder['phone']}', style: const TextStyle(color: Color(0xFF004d4d))),
                           Text('${shareholder['designation']} - ${shareholder['sharePercentage']}%', style: const TextStyle(color: Color(0xFF004d4d))),
                         ],
                       ),

@@ -4,6 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'driver_accepted_offer.dart';
+import 'driver_live_trip.dart';
+import 'package:logistics_app/screens/users/customer/route_map_view.dart';
+import 'package:logistics_app/services/location_tracking_service.dart';
 
 class UpcomingTripsScreen extends StatefulWidget {
   const UpcomingTripsScreen({super.key});
@@ -151,6 +154,9 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
           }
         }
 
+        // Stop location tracking if active
+        await LocationTrackingService().stopTracking();
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(t.requestCancelled)),
         );
@@ -195,7 +201,11 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
           'journeyStartedAt': DateTime.now().millisecondsSinceEpoch,
         });
 
-        // Notify customer that journey has started
+        // Start location tracking for driver
+        final trackingService = LocationTrackingService();
+        await trackingService.startTracking(_auth.currentUser!.uid);
+
+        // Notify customer that cargo is now in transit
         final requestSnapshot = await _db.child('requests/$requestId').get();
         if (requestSnapshot.exists) {
           final requestData = Map<String, dynamic>.from(requestSnapshot.value as Map);
@@ -204,7 +214,7 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
             await _db.child('customer_notifications/$customerId').push().set({
               'type': 'journey_started',
               'requestId': requestId,
-              'message': 'Driver has started the journey',
+              'message': 'Your cargo is now in transit',
               'timestamp': DateTime.now().millisecondsSinceEpoch,
             });
           }
@@ -214,14 +224,65 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
           const SnackBar(content: Text('Journey started successfully')),
         );
 
-        // Refresh the list
-        _loadUpcomingTrips();
+        // Navigate to live trip screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const DriverLiveTripScreen(),
+          ),
+        );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error starting journey: $e')),
         );
       }
     }
+  }
+
+  String _getLoadTypeLabel(String? loadType, AppLocalizations t) {
+    switch (loadType) {
+      case 'fragile':
+        return t.fragile;
+      case 'heavy':
+        return t.heavy;
+      case 'perishable':
+        return t.perishable;
+      case 'general':
+        return t.generalGoods;
+      default:
+        return loadType ?? 'N/A';
+    }
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Color(0xFF004d4d),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF004d4d),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -265,21 +326,30 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
                   itemBuilder: (context, index) {
                     final trip = _upcomingTrips[index];
                     return Card(
+                      color: Colors.white,
                       margin: const EdgeInsets.only(bottom: 16),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFF004d4d), width: 1),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Header with status
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  trip['loadName'] ?? 'N/A',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF004d4d),
+                                Expanded(
+                                  child: Text(
+                                    trip['loadName'] ?? 'N/A',
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF004d4d),
+                                    ),
                                   ),
                                 ),
                                 Container(
@@ -306,31 +376,155 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${trip['loadType']} • ${trip['weight']} ${trip['weightUnit']}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF004d4d),
+                            const SizedBox(height: 16),
+                            
+                            // Trip Details Section
+                            _buildDetailRow('Load Type', _getLoadTypeLabel(trip['loadType'], t)),
+                            _buildDetailRow('Weight', '${trip['weight']} ${trip['weightUnit']}'),
+                            _buildDetailRow('Quantity', '${trip['quantity']} vehicle(s)'),
+                            _buildDetailRow('Vehicle Type', trip['vehicleType'] ?? 'N/A'),
+                            if (trip['pickupDate'] != null && trip['pickupDate'] != 'N/A')
+                              _buildDetailRow('Pickup Date', trip['pickupDate']),
+                            _buildDetailRow('Pickup Time', trip['pickupTime'] ?? 'N/A'),
+                            _buildDetailRow('Fare', 'Rs ${trip['finalFare'] ?? trip['offerFare']}'),
+                            _buildDetailRow('Insurance', trip['isInsured'] == true ? 'Yes' : 'No'),
+                            
+                            // Location Section
+                            if (trip['pickupLocation'] != null && trip['destinationLocation'] != null) ...[
+                              const SizedBox(height: 12),
+                              const Divider(color: Color(0xFF004d4d)),
+                              const SizedBox(height: 12),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.radio_button_checked, color: Colors.green, size: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Pickup Location',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          trip['pickupLocation'] ?? 'Not specified',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Color(0xFF004d4d),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Pickup: ${trip['pickupTime'] ?? 'N/A'}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF004d4d),
+                              const SizedBox(height: 12),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 16),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      height: 1,
+                                      color: Colors.grey.withOpacity(0.3),
+                                    ),
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 4),
+                                      child: Icon(Icons.arrow_downward, color: Color(0xFF004d4d), size: 20),
+                                    ),
+                                    Container(
+                                      height: 1,
+                                      color: Colors.grey.withOpacity(0.3),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Fare: Rs ${trip['finalFare'] ?? trip['offerFare']}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                              const SizedBox(height: 12),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.location_on, color: Colors.red, size: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Destination Location',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          trip['destinationLocation'] ?? 'Not specified',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Color(0xFF004d4d),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.map, color: Color(0xFF004d4d)),
+                                  label: const Text('View Route on Map', style: TextStyle(color: Color(0xFF004d4d))),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: Color(0xFF004d4d)),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => RouteMapView(
+                                          pickupLocation: trip['pickupLocation'] ?? '',
+                                          destinationLocation: trip['destinationLocation'] ?? '',
+                                          loadName: trip['loadName'],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                            
+                            // Contact Information
+                            if (trip['senderPhone'] != null || trip['receiverPhone'] != null) ...[
+                              const SizedBox(height: 12),
+                              const Divider(color: Color(0xFF004d4d)),
+                              const SizedBox(height: 12),
+                              if (trip['senderPhone'] != null)
+                                _buildDetailRow('Sender Phone', trip['senderPhone']),
+                              if (trip['receiverPhone'] != null)
+                                _buildDetailRow('Receiver Phone', trip['receiverPhone']),
+                            ],
+                            
                             const SizedBox(height: 16),
                             Row(
                               children: [
@@ -352,6 +546,7 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
                                     label: Text(t.cancelRequest),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: Colors.red,
+                                      side: const BorderSide(color: Colors.red),
                                     ),
                                     onPressed: () => _cancelRequest(trip['requestId']),
                                   ),
@@ -370,6 +565,28 @@ class _UpcomingTripsScreenState extends State<UpcomingTripsScreen> {
                                     foregroundColor: Colors.white,
                                   ),
                                   onPressed: () => _startJourney(trip['requestId']),
+                                ),
+                              ),
+                            ],
+                            if (trip['status'] == 'in_progress') ...[
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.visibility, size: 18),
+                                  label: const Text('View Live Trip'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const DriverLiveTripScreen(),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ],

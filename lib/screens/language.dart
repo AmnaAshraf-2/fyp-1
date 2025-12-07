@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:logistics_app/main.dart';
 import 'package:logistics_app/screens/role.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LanguageSettingsScreen extends StatefulWidget {
   const LanguageSettingsScreen({super.key});
@@ -21,14 +22,31 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
 
   Future<void> _loadSavedLanguage() async {
     final prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
+    
+    String? code = 'en';
+    if (user != null) {
+      code = prefs.getString('languageCode_${user.uid}') ?? 'en';
+    } else {
+      code = prefs.getString('languageCode') ?? 'en';
+    }
+    
     setState(() {
-      _selectedLanguageCode = prefs.getString('languageCode') ?? 'en';
+      _selectedLanguageCode = code;
     });
   }
 
   Future<void> _saveLanguage(String languageCode) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('languageCode', languageCode);
+    final user = FirebaseAuth.instance.currentUser;
+    
+    // Save language preference for the current user
+    if (user != null) {
+      await prefs.setString('languageCode_${user.uid}', languageCode);
+    } else {
+      // Fallback to global if no user (for initial app setup)
+      await prefs.setString('languageCode', languageCode);
+    }
   }
 
   void _onLanguageSelected(String code) {

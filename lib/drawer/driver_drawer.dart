@@ -3,6 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logistics_app/drawer/base_drawer.dart';
 import 'package:logistics_app/screens/users/driver/driver_new_offers.dart';
 import 'package:logistics_app/screens/users/driver/upcoming_trips.dart';
+import 'package:logistics_app/screens/users/driver/past_trips.dart';
 import 'package:logistics_app/screens/users/driver/driver_notifications.dart';
 
 class DriverDrawer extends StatelessWidget {
@@ -11,48 +12,57 @@ class DriverDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
+    final currentRoute = ModalRoute.of(context)?.settings.name;
 
     final menuItems = [
       DrawerMenuItem(
         icon: Icons.dashboard,
-        title: 'Dashboard',
-        onTap: () => Navigator.pushReplacementNamed(context, '/driverDashboard'),
-        isSelected: true,
+        title: loc.dashboard,
+        onTap: () {
+          if (currentRoute != '/driverDashboard') {
+            Navigator.pushReplacementNamed(context, '/driverDashboard');
+          } else {
+            Navigator.pop(context);
+          }
+        },
+        isSelected: currentRoute == '/driverDashboard',
       ),
       DrawerMenuItem(
         icon: Icons.local_offer,
-        title: 'New Offers',
+        title: loc.newOffers,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const DriverNewOffersScreen()),
         ),
+        isSelected: currentRoute == '/driverNewOffers',
       ),
       DrawerMenuItem(
         icon: Icons.directions_bus,
-        title: 'Upcoming Trips',
+        title: loc.upcomingTrips,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const UpcomingTripsScreen()),
         ),
+        isSelected: currentRoute == '/driverUpcomingTrips',
       ),
       DrawerMenuItem(
         icon: Icons.history,
-        title: 'Past Trips',
+        title: loc.pastTrips,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const PastTripsPage()),
+          MaterialPageRoute(builder: (_) => const PastTripsScreen()),
         ),
       ),
       DrawerMenuItem(
         icon: Icons.person,
         title: loc.profile,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile - Coming Soon')),
+          SnackBar(content: Text(loc.profileComingSoon)),
         ),
       ),
       DrawerMenuItem(
         icon: Icons.notifications,
-        title: 'Notifications',
+        title: loc.notifications,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const DriverNotificationsScreen()),
@@ -62,14 +72,14 @@ class DriverDrawer extends StatelessWidget {
         icon: Icons.settings,
         title: loc.settings,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Settings - Coming Soon')),
+          SnackBar(content: Text(loc.settingsComingSoon)),
         ),
       ),
       DrawerMenuItem(
         icon: Icons.help_outline,
         title: loc.supportHelp,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Support - Coming Soon')),
+          SnackBar(content: Text(loc.supportComingSoon)),
         ),
       ),
     ];
@@ -78,28 +88,10 @@ class DriverDrawer extends StatelessWidget {
       role: 'driver',
       roleLabel: loc.driver,
       menuItems: menuItems,
-      headerColor1: Colors.blue,
-      headerColor2: Colors.blue.shade700,
+      headerColor1: const Color(0xFF006A6A),  // Deep Teal
+      headerColor2: const Color(0xFF008B8B),  // Lighter Teal Shade
     );
   }
 }
 
-// Placeholder for PastTripsPage
-class PastTripsPage extends StatelessWidget {
-  const PastTripsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Past Trips", style: TextStyle(color: Color(0xFF004d4d))),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF004d4d)),
-      ),
-      body: const Center(child: Text("Past Trips - Coming Soon", style: TextStyle(color: Color(0xFF004d4d)))),
-    );
-  }
-}
 

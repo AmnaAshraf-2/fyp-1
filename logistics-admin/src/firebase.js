@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
+import { getAuth } from "firebase/auth";
 
 // 🔹 Copy your Firebase config from Firebase Console → Project Settings → SDK setup and configuration
 const firebaseConfig = {
@@ -17,3 +18,6 @@ const app = initializeApp(firebaseConfig);
 
 // Export Realtime Database
 export const database = getDatabase(app);
+
+// Export Firebase Auth
+export const auth = getAuth(app);

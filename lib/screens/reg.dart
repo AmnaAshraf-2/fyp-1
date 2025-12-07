@@ -7,10 +7,17 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:logistics_app/screens/login.dart';
 import 'package:logistics_app/splash/welcome.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
+import 'package:logistics_app/screens/users/driver/driver_registration.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise_details.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+// Import Google Sign-In with conditional import for web
+import 'package:google_sign_in/google_sign_in.dart'
+    if (dart.library.html) 'package:logistics_app/screens/reg_web_stub.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -24,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _passwordVisible = false;
   final _formKey = GlobalKey<FormState>();
   String completePhoneNumber = ''; // No need for `late`
+  String? selectedRole; // Selected role: customer, driver, or enterprise
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
@@ -44,75 +52,151 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // /// Google Sign-In function for registration
-  // Future<void> _signInWithGoogle() async {
-  //   setState(() => isLoading = true);
+  /// Google Sign-In function for registration (REGISTRATION ONLY - no auto-login)
+  Future<void> _signInWithGoogle() async {
+    if (mounted) {
+      setState(() => isLoading = true);
+    }
 
-  //   try {
-  //     // Step 1: Trigger Google Sign-In with web client ID
-  //     final GoogleSignInAccount? googleUser = await GoogleSignIn(
-  //       clientId: "225444114745-56stpvja0vlg37g37pt8mkrc0bm13pom.apps.googleusercontent.com",
-  //       scopes: ['email'],
-  //     ).signIn();
+    try {
+      UserCredential userCredential;
+      GoogleSignInAccount? googleUser;
 
-  //     if (googleUser == null) {
-  //       Fluttertoast.showToast(msg: "Google Sign-In cancelled");
-  //       setState(() => isLoading = false);
-  //       return;
-  //     }
+      if (kIsWeb) {
+        // Web Google Sign-In
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        // Mobile Google Sign-In (v7.x)
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        googleUser = await googleSignIn.signIn();
 
-  //     // Step 2: Obtain auth details
-  //     final GoogleSignInAuthentication googleAuth =
-  //         await googleUser.authentication;
+        if (googleUser == null) {
+          Fluttertoast.showToast(msg: "Google Sign-In cancelled");
+          if (mounted) {
+            setState(() => isLoading = false);
+          }
+          return;
+        }
 
-  //     // Step 3: Create a credential
-  //     final OAuthCredential credential = GoogleAuthProvider.credential(
-  //       accessToken: googleAuth.accessToken,
-  //       idToken: googleAuth.idToken,
-  //     );
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+        userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      }
 
-  //     // Step 4: Sign in to Firebase
-  //     final UserCredential userCredential =
-  //         await FirebaseAuth.instance.signInWithCredential(credential);
+      final firebaseUser = userCredential.user;
+      if (firebaseUser == null) {
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+        return;
+      }
 
-  //     // Step 5: Create user profile in database
-  //     await _createGoogleUserProfile(userCredential.user!, googleUser);
+      final uid = firebaseUser.uid;
 
-  //     // Step 6: Navigate to welcome screen
-  //     Navigator.pushReplacement(
-  //       context,
-  //       MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-  //     );
+      // 🔥 Step 1: Check if this Google UID already exists in your users table
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref()
+          .child("users")
+          .child(uid)
+          .get();
 
-  //     Fluttertoast.showToast(msg: "Successfully registered with Google");
-  //   } catch (e) {
-  //     Fluttertoast.showToast(msg: "Error registering with Google: $e");
-  //   } finally {
-  //     setState(() => isLoading = false);
-  //   }
-  // }
+      if (userSnapshot.exists) {
+        // ❌ User already registered - DO NOT log them in
+        await FirebaseAuth.instance.signOut(); // Important: sign out immediately
+        Fluttertoast.showToast(
+          msg: "This Google account is already registered. Please login instead.",
+        );
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+        return;
+      }
 
-  // /// Create user profile for Google registration
-  // Future<void> _createGoogleUserProfile(User user, GoogleSignInAccount googleUser) async {
-  //   try {
-  //     final database = FirebaseDatabase.instance.ref();
-  //     final userRef = database.child('users/${user.uid}');
-      
-  //     // Create new user profile
-  //     await userRef.set({
-  //       'uid': user.uid,
-  //       'email': user.email,
-  //       'name': googleUser.displayName ?? 'Google User',
-  //       'phone': user.phoneNumber ?? '',
-  //       'role': 'customer', // Default role
-  //       'profileImage': googleUser.photoUrl ?? '',
-  //       'isGoogleUser': true,
-  //       'createdAt': DateTime.now().millisecondsSinceEpoch,
-  //     });
-  //   } catch (e) {
-  //     print('Error creating Google user profile: $e');
-  //   }
-  // }
+      // Get user display name and photo
+      String displayName = firebaseUser.displayName ?? 'Google User';
+      String? photoUrl = firebaseUser.photoURL;
+
+      // For mobile, get additional info from GoogleSignInAccount
+      if (!kIsWeb && googleUser != null) {
+        displayName = googleUser.displayName ?? displayName;
+        photoUrl = googleUser.photoUrl ?? photoUrl;
+      }
+
+      if (mounted) {
+        // 🔥 Step 2: Get role from user (Customer / Driver / Enterprise)
+        String? role = await _showRoleSelectionDialog();
+        if (role == null) {
+          // User cancelled role selection - sign out
+          await FirebaseAuth.instance.signOut();
+          if (mounted) {
+            setState(() => isLoading = false);
+          }
+          return;
+        }
+
+        // 🔥 Step 3: Get phone number from user
+        String? phoneNumber = await _showPhoneNumberDialog();
+        if (phoneNumber == null || phoneNumber.isEmpty) {
+          // User cancelled phone number entry - sign out
+          await FirebaseAuth.instance.signOut();
+          if (mounted) {
+            setState(() => isLoading = false);
+          }
+          return;
+        }
+
+        // 🔥 Step 4: Save new registration in database
+        final userMap = <String, dynamic>{
+          "id": uid,
+          "name": displayName,
+          "email": firebaseUser.email ?? '',
+          "phone": phoneNumber,
+          "role": role,
+          "profileImage": photoUrl ?? '',
+          "isProfileComplete": role == 'driver' ? false : true,
+          "createdAt": ServerValue.timestamp,
+        };
+
+        await FirebaseDatabase.instance
+            .ref()
+            .child("users")
+            .child(uid)
+            .set(userMap);
+
+        // Save local data
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('full_name', displayName);
+        await prefs.setString('profile_image', photoUrl ?? '');
+        await prefs.setString('userRole', role);
+        // Save default language preference (English)
+        await prefs.setString('languageCode_${uid}', 'en');
+
+        Fluttertoast.showToast(msg: "Successfully registered with Google");
+
+        // 🔥 Step 5: Navigate according to selected role
+        _navigateBasedOnRole(role);
+      }
+    } on FirebaseAuthException catch (e) {
+      Fluttertoast.showToast(msg: "Google Sign-In failed: ${e.message}");
+      // Sign out on error to ensure clean state
+      try {
+        await FirebaseAuth.instance.signOut();
+      } catch (_) {}
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error registering with Google: ${e.toString()}");
+      // Sign out on error to ensure clean state
+      try {
+        await FirebaseAuth.instance.signOut();
+      } catch (_) {}
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
 
   Future<String> _getSmsCodeFromUser() async {
     String smsCode = '';
@@ -187,53 +271,168 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => isLoading = false);
   }
 
-//   Future<void> _signInWithGoogle() async {
-//   try {
-//     UserCredential userCredential;
+  Future<String?> _showRoleSelectionDialog() async {
+    String? selectedRole;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final loc = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(loc != null ? 'Select Your Role' : 'Select Your Role'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(loc?.customer ?? 'Customer'),
+                leading: const Icon(Icons.person, color: Color(0xFF004d4d)),
+                onTap: () {
+                  selectedRole = 'customer';
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: Text(loc?.driver ?? 'Driver'),
+                leading: const Icon(Icons.drive_eta, color: Color(0xFF004d4d)),
+                onTap: () {
+                  selectedRole = 'driver';
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: Text(loc?.enterprise ?? 'Enterprise'),
+                leading: const Icon(Icons.business, color: Color(0xFF004d4d)),
+                onTap: () {
+                  selectedRole = 'enterprise';
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    return selectedRole;
+  }
 
-//     if (kIsWeb) {
-//       // For Web
-//       final GoogleAuthProvider googleProvider = GoogleAuthProvider();
-//       userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
-//     } else {
-//       // For Mobile
-//       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      
-//       if (googleUser == null) {
-//         Fluttertoast.showToast(msg: "Google Sign-In cancelled");
-//         return;
-//       }
+  Future<String?> _showPhoneNumberDialog() async {
+    String? phoneNumber;
+    final phoneController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
-//       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
-//       final credential = GoogleAuthProvider.credential(
-//         accessToken: googleAuth.accessToken,
-//         idToken: googleAuth.idToken,
-//       );
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Enter Your Phone Number'),
+          content: Form(
+            key: formKey,
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: TextFormField(
+                controller: phoneController,
+                inputFormatters: [phoneMaskFormatter],
+                keyboardType: TextInputType.phone,
+                style: TextStyle(color: const Color(0xFF004d4d)),
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  hintText: '+92 300 123 4567',
+                  labelStyle: TextStyle(color: const Color(0xFF004d4d)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: const Color(0xFF004d4d)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: const Color(0xFF004d4d)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: const Color(0xFF004d4d), width: 2),
+                  ),
+                  prefixIcon: Icon(Icons.phone, color: const Color(0xFF004d4d)),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Phone number required";
+                  }
+                  // Ensure it's a Pakistani number with +92
+                  if (!value.startsWith('+92')) {
+                    return "Please enter a valid Pakistani number";
+                  }
+                  // Remove spaces and check if the number has the correct length
+                  String cleanNumber = value.replaceAll(' ', '');
+                  if (cleanNumber.length != 13) {
+                    return "Please enter a valid Pakistani mobile number";
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF004d4d),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  phoneNumber = phoneController.text.trim();
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+    return phoneNumber;
+  }
 
-//       userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-//     }
+  void _navigateBasedOnRole(String role) {
+    if (role == 'customer') {
+      // Customer: welcome screen → customer dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      );
+    } else if (role == 'driver') {
+      // Driver: driver registration → vehicle registration → welcome → driver dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DriverRegistration()),
+      );
+    } else if (role == 'enterprise') {
+      // Enterprise: enterprise registration
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const EnterpriseDetailsScreen()),
+      );
+    }
+  }
 
-//     // Common success handling
-//     if (userCredential.user != null) {
-//       Fluttertoast.showToast(msg: "Google Sign-In successful");
-//       if (context.mounted) {
-//         Navigator.pushReplacement(
-//           context,
-//           MaterialPageRoute(builder: (c) => const WelcomeScreen()),
-//         );
-//       }
-//     }
-
-//   } catch (e) {
-//     Fluttertoast.showToast(msg: "Google Sign-In failed: ${e.toString()}");
-//   }
-// }
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (selectedRole == null) {
+      Fluttertoast.showToast(msg: "Please select a role");
+      return;
+    }
 
     try {
-      setState(() => isLoading = true);
+      if (mounted) {
+        setState(() => isLoading = true);
+      }
 
       final authResult =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -242,11 +441,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (authResult.user != null) {
-        final userMap = {
+        final userMap = <String, dynamic>{
           "id": authResult.user!.uid,
           "name": nameController.text.trim(),
           "email": emailController.text.trim(),
           "phone": completePhoneNumber.isNotEmpty ? completePhoneNumber : phoneController.text.trim(),
+          "role": selectedRole,
+          "profileImage": "", // Empty initially, will be updated if user uploads
+          "isProfileComplete": selectedRole == 'driver' ? false : true,
+          "createdAt": ServerValue.timestamp,
         };
 
         await FirebaseDatabase.instance
@@ -258,16 +461,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('full_name', nameController.text.trim());
         await prefs.setString('profile_image', ""); // Empty initially
+        await prefs.setString('userRole', selectedRole!);
+        // Save default language preference (English)
+        await prefs.setString('languageCode_${authResult.user!.uid}', 'en');
 
         Fluttertoast.showToast(msg: "Registration successful");
-        Navigator.pushReplacementNamed(context, '/language');
+        if (mounted) {
+          _navigateBasedOnRole(selectedRole!);
+        }
       }
     } on FirebaseAuthException catch (e) {
       Fluttertoast.showToast(msg: _handleFirebaseError(e.code));
     } catch (e) {
       Fluttertoast.showToast(msg: "Registration failed: ${e.toString()}");
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -324,7 +534,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            "CALCULATE EVERY LOAD",
+                            "MULTI-LINGUAL LOGISTICS MANAGEMENT SYSTEM",
                             style: TextStyle(
                               fontSize: 14,
                               letterSpacing: 1.2,
@@ -349,6 +559,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               const SizedBox(height: 20),
                               _buildPhoneField(),
                               const SizedBox(height: 20),
+                              _buildRoleDropdown(),
+                              const SizedBox(height: 20),
                               _buildPasswordField(),
                               const SizedBox(height: 20),
                               _buildConfirmPasswordField(),
@@ -357,7 +569,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               const SizedBox(height: 30),
                               _buildLoginLink(),
                               const SizedBox(height: 40),
-                              // _buildGoogleSignInButton(), // Commented out
+                              _buildGoogleSignInButton(),
                               const SizedBox(height: 10),
                               //  _buildPhoneAuthButton(),
                             ],
@@ -438,6 +650,60 @@ class _RegisterScreenState extends State<RegisterScreen> {
         keyboardType: TextInputType.emailAddress,
         validator: (value) =>
             EmailValidator.validate(value ?? '') ? null : "Enter valid email",
+      ),
+    );
+  }
+
+  Widget _buildRoleDropdown() {
+    final loc = AppLocalizations.of(context);
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: DropdownButtonFormField<String>(
+        value: selectedRole,
+        decoration: InputDecoration(
+          labelText: 'Select Role',
+          labelStyle: TextStyle(color: const Color(0xFF004d4d)),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide(color: const Color(0xFF004d4d)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide(color: const Color(0xFF004d4d)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide(color: const Color(0xFF004d4d), width: 2),
+          ),
+          prefixIcon: Icon(Icons.person_outline, color: const Color(0xFF004d4d)),
+        ),
+        items: [
+          DropdownMenuItem(
+            value: 'customer',
+            child: Text(loc?.customer ?? 'Customer'),
+          ),
+          DropdownMenuItem(
+            value: 'driver',
+            child: Text(loc?.driver ?? 'Driver'),
+          ),
+          DropdownMenuItem(
+            value: 'enterprise',
+            child: Text(loc?.enterprise ?? 'Enterprise'),
+          ),
+        ],
+        onChanged: (value) {
+          setState(() {
+            selectedRole = value;
+          });
+        },
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return "Please select a role";
+          }
+          return null;
+        },
       ),
     );
   }
@@ -619,31 +885,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Widget _buildGoogleSignInButton() {
-  //   return ElevatedButton.icon(
-  //     style: ElevatedButton.styleFrom(
-  //       padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-  //       backgroundColor: Colors.white,
-  //       foregroundColor: const Color(0xFF004d4d),
-  //       shape: RoundedRectangleBorder(
-  //         borderRadius: BorderRadius.circular(30),
-  //       ),
-  //     ),
-  //     icon: Image.asset(
-  //       'assets/images/g.png',
-  //       height: 20,
-  //       width: 20,
-  //       errorBuilder: (context, error, stackTrace) {
-  //         return Icon(Icons.login, color: const Color(0xFF004d4d));
-  //       },
-  //     ),
-  //     label: const Text(
-  //       'Continue with Google',
-  //       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-  //     ),
-  //     onPressed: isLoading ? null : _signInWithGoogle,
-  //   );
-  // }
+  Widget _buildGoogleSignInButton() {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF004d4d),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+        ),
+      ),
+      icon: Image.asset(
+        'assets/images/g.png',
+        height: 20,
+        width: 20,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(Icons.login, color: const Color(0xFF004d4d));
+        },
+      ),
+      label: const Text(
+        'Continue with Google',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      onPressed: isLoading ? null : _signInWithGoogle,
+    );
+  }
 
   Widget _buildPhoneAuthButton() {
     return ElevatedButton.icon(
@@ -661,3 +927,4 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
+

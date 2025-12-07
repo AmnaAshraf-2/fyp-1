@@ -41,15 +41,17 @@ class _EnterpriseDetailsScreenState extends State<EnterpriseDetailsScreen> {
   bool _isLoading = false;
   String? _selectedBusinessType;
 
-  final List<String> _businessTypes = [
-    'Private Limited Company',
-    'Public Limited Company',
-    'Partnership',
-    'Sole Proprietorship',
-    'Non-Profit Organization',
-    'Government Entity',
-    'Other'
-  ];
+  List<String> _getBusinessTypes(AppLocalizations t) {
+    return [
+      t.privateLimitedCompany,
+      t.publicLimitedCompany,
+      t.partnership,
+      t.soleProprietorship,
+      t.nonProfitOrganization,
+      t.governmentEntity,
+      t.other
+    ];
+  }
 
   @override
   void initState() {
@@ -128,8 +130,9 @@ class _EnterpriseDetailsScreenState extends State<EnterpriseDetailsScreen> {
           ),
         );
       } catch (e) {
+        final t = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${t.error}: $e')),
         );
       } finally {
         setState(() => _isLoading = false);
@@ -316,7 +319,7 @@ class _EnterpriseDetailsScreenState extends State<EnterpriseDetailsScreen> {
                   prefixIcon: const Icon(Icons.category),
                   border: const OutlineInputBorder(),
                 ),
-                items: _businessTypes.map((String type) {
+                items: _getBusinessTypes(loc).map((String type) {
                   return DropdownMenuItem<String>(
                     value: type,
                     child: Text(type),

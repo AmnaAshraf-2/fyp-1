@@ -7,29 +7,58 @@ class FareCalculator {
     'Suzuki Pickup': {
       'ratePerKm': 30.0,
       'baseFare': 300.0,
-      'maxLoad': 800.0, // kg
+      'maxLoad': 800.0,
     },
     'Mazda 14 ft': {
       'ratePerKm': 50.0,
       'baseFare': 500.0,
-      'maxLoad': 2000.0, // kg
+      'maxLoad': 2000.0,
     },
     'Shehzore': {
       'ratePerKm': 45.0,
       'baseFare': 400.0,
-      'maxLoad': 1500.0, // kg
+      'maxLoad': 1500.0,
     },
     'Container (20 ft)': {
       'ratePerKm': 70.0,
       'baseFare': 800.0,
-      'maxLoad': 5000.0, // kg
+      'maxLoad': 5000.0,
     },
     'Trailer': {
       'ratePerKm': 100.0,
       'baseFare': 1000.0,
-      'maxLoad': 10000.0, // kg
+      'maxLoad': 10000.0,
     },
   };
+
+  /// Get vehicle capacity in kg
+  static double? getVehicleCapacity(String vehicleType) {
+    return vehicleRates[vehicleType]?['maxLoad'];
+  }
+
+  /// Calculate required vehicle count based on weight
+  static int calculateVehicleCount({
+    required double weight,
+    required String weightUnit,
+    required String vehicleType,
+  }) {
+    // Convert weight to kg
+    double weightInKg = weight;
+    if (weightUnit == 'tons') {
+      weightInKg = weight * 1000;
+    } else if (weightUnit == 'lbs') {
+      weightInKg = weight * 0.453592;
+    }
+
+    // Get vehicle capacity
+    final capacity = getVehicleCapacity(vehicleType);
+    if (capacity == null) {
+      return 1; // Default to 1 if capacity unknown
+    }
+
+    // Calculate required vehicles (ceiling)
+    return (weightInKg / capacity).ceil();
+  }
 
   // Weight unit conversion to tons
   static const Map<String, double> weightUnitToTons = {
@@ -38,23 +67,26 @@ class FareCalculator {
     'lbs': 0.000453592,
   };
 
-  // Load type multipliers (as percentages)
+  // Load type multipliers
   static const Map<String, double> loadTypeMultipliers = {
-    'fragile': 0.10,      // +10% for fragile items
-    'heavy': 0.20,        // +20% for heavy items
-    'perishable': 0.15,   // +15% for perishable items
-    'general': 0.0,       // No extra charge for general goods
+    'fragile': 0.10,
+    'heavy': 0.20,
+    'perishable': 0.15,
+    'general': 0.0,
   };
 
   // Insurance multiplier
-  static const double insuranceMultiplier = 1.2; // 20% extra for insurance
+  static const double insuranceMultiplier = 1.2;
 
-  // Weight factor rate (Rs. 200 per ton)
+  // Weight factor rate
   static const double weightFactorRate = 200.0;
 
-  /// Calculate suggested fare using the exact formula:
-  /// Estimated Fare = Base Fare + (Distance × Rate per km) + (Weight Factor) + (Load Type Multiplier)
-  static Future<double> calculateSuggestedFare({
+  // 🔥 Hybrid Commission
+  static const double commissionRate = 0.10;  // 10%
+  static const double minimumCommission = 100.0;
+
+  /// MAIN FARE CALCULATION
+  static Future<Map<String, dynamic>> calculateFareWithCommission({
     required String pickupLocation,
     required String destinationLocation,
     required double weight,
@@ -68,155 +100,75 @@ class FareCalculator {
       final vehicleRate = vehicleRates[vehicleType] ?? vehicleRates['Suzuki Pickup']!;
       final baseFare = vehicleRate['baseFare']!;
       final ratePerKm = vehicleRate['ratePerKm']!;
-      
+
       // Calculate distance
       double distance = await _calculateDistance(pickupLocation, destinationLocation);
-      
-      // Convert weight to tons
+
+      // Weight conversion
       double weightInTons = weight * (weightUnitToTons[weightUnit] ?? 0.001);
-      
-      // Calculate weight factor (Rs. 200 per ton)
+
+      // Weight factor
       double weightFactor = weightInTons * weightFactorRate;
-      
-      // Calculate base fare components
+
+      // Distance cost
       double distanceCost = distance * ratePerKm;
-      
-      // Calculate total before load type multiplier
+
+      // Subtotal
       double subtotal = baseFare + distanceCost + weightFactor;
-      
-      // Apply load type multiplier (as percentage)
+
+      // Load type multiplier
       double loadTypeMultiplier = loadTypeMultipliers[cargoType] ?? 0.0;
       double loadTypeCost = subtotal * loadTypeMultiplier;
-      
-      // Calculate final fare
+
+      // Fare before insurance
       double finalFare = subtotal + loadTypeCost;
-      
-      // Apply insurance multiplier if insured
-      if (isInsured) {
-        finalFare *= insuranceMultiplier;
-      }
-      
-      return double.parse(finalFare.toStringAsFixed(0));
+
+      // Insurance
+      if (isInsured) finalFare *= insuranceMultiplier;
+
+      // 🔥 Hybrid commission
+      double percentageCommission = finalFare * commissionRate;
+      double commission = percentageCommission < minimumCommission
+          ? minimumCommission
+          : percentageCommission;
+
+      double driverReceives = finalFare - commission;
+
+      return {
+        "distance": distance,
+        "baseFare": baseFare,
+        "distanceCost": distanceCost,
+        "weightFactor": weightFactor,
+        "loadTypeCost": loadTypeCost,
+        "subtotal": subtotal,
+        "insuranceApplied": isInsured,
+        "finalFare": finalFare,
+        "commission": commission,
+        "driverReceives": driverReceives,
+      };
     } catch (e) {
-      // Return a default fare if calculation fails
-      return _getDefaultFare(weight, cargoType, vehicleType, isInsured);
+      return {
+        "error": e.toString(),
+      };
     }
   }
 
-  /// Calculate distance between two locations
+  /// Distance calculation
   static Future<double> _calculateDistance(String pickup, String destination) async {
     try {
-      // Get coordinates for pickup location
-      List<Location> pickupLocations = await locationFromAddress(pickup);
-      if (pickupLocations.isEmpty) return 10.0; // Default distance
-      
-      // Get coordinates for destination location
-      List<Location> destinationLocations = await locationFromAddress(destination);
-      if (destinationLocations.isEmpty) return 10.0; // Default distance
-      
-      // Calculate distance using Haversine formula
+      List<Location> p = await locationFromAddress(pickup);
+      List<Location> d = await locationFromAddress(destination);
+
       double distance = Geolocator.distanceBetween(
-        pickupLocations.first.latitude,
-        pickupLocations.first.longitude,
-        destinationLocations.first.latitude,
-        destinationLocations.first.longitude,
+        p.first.latitude,
+        p.first.longitude,
+        d.first.latitude,
+        d.first.longitude,
       );
-      
-      // Convert from meters to kilometers
+
       return distance / 1000;
     } catch (e) {
-      // Return default distance if geocoding fails
       return 10.0;
     }
-  }
-
-  /// Get default fare when distance calculation fails
-  static double _getDefaultFare(double weight, String cargoType, String vehicleType, bool isInsured) {
-    // Get vehicle rates
-    final vehicleRate = vehicleRates[vehicleType] ?? vehicleRates['Suzuki Pickup']!;
-    final baseFare = vehicleRate['baseFare']!;
-    final ratePerKm = vehicleRate['ratePerKm']!;
-    
-    // Use default distance of 50 km
-    double defaultDistance = 50.0;
-    
-    // Convert weight to tons
-    double weightInTons = weight * 0.001; // Assume kg if not specified
-    
-    // Calculate weight factor (Rs. 200 per ton)
-    double weightFactor = weightInTons * weightFactorRate;
-    
-    // Calculate base fare components
-    double distanceCost = defaultDistance * ratePerKm;
-    
-    // Calculate total before load type multiplier
-    double subtotal = baseFare + distanceCost + weightFactor;
-    
-    // Apply load type multiplier (as percentage)
-    double loadTypeMultiplier = loadTypeMultipliers[cargoType] ?? 0.0;
-    double loadTypeCost = subtotal * loadTypeMultiplier;
-    
-    // Calculate final fare
-    double finalFare = subtotal + loadTypeCost;
-    
-    // Apply insurance multiplier if insured
-    if (isInsured) {
-      finalFare *= insuranceMultiplier;
-    }
-    
-    return finalFare;
-  }
-
-  /// Get fare breakdown for display using the new formula
-  static Map<String, dynamic> getFareBreakdown({
-    required double distance,
-    required double weight,
-    required String weightUnit,
-    required String cargoType,
-    required String vehicleType,
-    required bool isInsured,
-  }) {
-    // Get vehicle rates
-    final vehicleRate = vehicleRates[vehicleType] ?? vehicleRates['Suzuki Pickup']!;
-    final baseFare = vehicleRate['baseFare']!;
-    final ratePerKm = vehicleRate['ratePerKm']!;
-    
-    // Convert weight to tons
-    double weightInTons = weight * (weightUnitToTons[weightUnit] ?? 0.001);
-    
-    // Calculate weight factor (Rs. 200 per ton)
-    double weightFactor = weightInTons * weightFactorRate;
-    
-    // Calculate base fare components
-    double distanceCost = distance * ratePerKm;
-    
-    // Calculate total before load type multiplier
-    double subtotal = baseFare + distanceCost + weightFactor;
-    
-    // Apply load type multiplier (as percentage)
-    double loadTypeMultiplier = loadTypeMultipliers[cargoType] ?? 0.0;
-    double loadTypeCost = subtotal * loadTypeMultiplier;
-    
-    // Calculate final fare
-    double finalFare = subtotal + loadTypeCost;
-    
-    // Apply insurance multiplier if insured
-    if (isInsured) {
-      finalFare *= insuranceMultiplier;
-    }
-    
-    return {
-      'distance': distance,
-      'baseFare': baseFare,
-      'ratePerKm': ratePerKm,
-      'distanceCost': distanceCost,
-      'weightInTons': weightInTons,
-      'weightFactor': weightFactor,
-      'subtotal': subtotal,
-      'loadTypeMultiplier': loadTypeMultiplier,
-      'loadTypeCost': loadTypeCost,
-      'insuranceMultiplier': isInsured ? insuranceMultiplier : 1.0,
-      'finalFare': finalFare,
-    };
   }
 }

@@ -37,23 +37,22 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         return;
       }
 
-      // Set a timeout for Firebase operations
       final timeout = Duration(seconds: 10);
-      
-      // Listen for changes in requests where customer is the current user and status is accepted
+
       _subscription = _db.child('requests').onValue.timeout(timeout).listen((event) {
         if (event.snapshot.exists) {
           final requests = <Map<String, dynamic>>[];
           for (final request in event.snapshot.children) {
             final requestData = Map<String, dynamic>.from(request.value as Map);
-            if (requestData['customerId'] == user.uid && 
-                (requestData['status'] == 'accepted' || requestData['status'] == 'in_progress')) {
+            final status = requestData['status'] as String?;
+            // Include accepted, dispatched, and in_progress statuses
+            // Also include bookings accepted by enterprise (acceptedEnterpriseId) or driver (acceptedDriverId)
+            if (requestData['customerId'] == user.uid &&
+                (status == 'accepted' || status == 'dispatched' || status == 'in_progress')) {
               requestData['requestId'] = request.key;
               requests.add(requestData);
             }
@@ -68,62 +67,72 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
             _isLoading = false;
           });
         }
-      }, onError: (error) {
-        print('Error loading upcoming bookings: $error');
-        setState(() {
-          _isLoading = false;
-        });
       });
     } catch (e) {
-      print('Error loading upcoming bookings: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _callDriver(String driverId) async {
     try {
-      final driverSnapshot = await _db.child('users/$driverId').get();
-      if (driverSnapshot.exists) {
-        final driverData = Map<String, dynamic>.from(driverSnapshot.value as Map);
-        final phoneNumber = driverData['phone']?.toString();
+      final snapshot = await _db.child('users/$driverId').get();
+      if (snapshot.exists) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final phone = data['phone']?.toString();
+
+        if (phone != null) {
+          final uri = Uri(scheme: 'tel', path: phone);
+          if (await canLaunchUrl(uri)) launchUrl(uri);
+        }
+      }
+    } catch (e) {}
+  }
+
+  Future<void> _callEnterprise(String enterpriseId) async {
+    try {
+      final snapshot = await _db.child('users/$enterpriseId').get();
+      if (snapshot.exists) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final enterpriseDetails = data['enterpriseDetails'] as Map<String, dynamic>?;
         
-        if (phoneNumber != null) {
-          final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
-          if (await canLaunchUrl(phoneUri)) {
-            await launchUrl(phoneUri);
+        // Try to get phone from enterpriseDetails first, then from user data
+        final phone = enterpriseDetails?['contactPhone']?.toString() ?? 
+                     enterpriseDetails?['cooperateNumber']?.toString() ??
+                     data['phone']?.toString() ?? 
+                     data['phoneNumber']?.toString();
+
+        if (phone != null && phone.isNotEmpty) {
+          final uri = Uri(scheme: 'tel', path: phone);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Cannot make call to $phoneNumber')),
+              SnackBar(content: Text('Cannot make call to $phone')),
             );
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Driver phone number not available')),
+            const SnackBar(content: Text('Enterprise contact number not available')),
           );
         }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error calling driver: $e')),
+        SnackBar(content: Text('Error contacting enterprise: $e')),
       );
     }
   }
 
   Future<void> _cancelRequest(String requestId) async {
     final t = AppLocalizations.of(context)!;
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(t.cancelRequest),
         content: Text(t.areYouSureCancelRequest),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(t.cancel),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t.cancel)),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -135,21 +144,22 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
 
     if (confirmed == true) {
       try {
-        // Update request status to cancelled
-        await _db.child('requests/$requestId').update({
-          'status': 'cancelled',
-          'cancelledBy': 'customer',
-          'cancelledAt': DateTime.now().millisecondsSinceEpoch,
-        });
-
-        // Remove all offers for this request
-        await _db.child('customer_offers/$requestId').remove();
-
-        // Notify driver about cancellation
+        // Get request data to find the accepted driver
         final requestSnapshot = await _db.child('requests/$requestId').get();
         if (requestSnapshot.exists) {
           final requestData = Map<String, dynamic>.from(requestSnapshot.value as Map);
           final driverId = requestData['acceptedDriverId'];
+          
+          // Update request status to cancelled
+          await _db.child('requests/$requestId').update({
+            'status': 'cancelled',
+            'cancelledBy': 'customer',
+            'cancelledAt': DateTime.now().millisecondsSinceEpoch,
+          });
+
+          await _db.child('customer_offers/$requestId').remove();
+
+          // Notify driver about cancellation if there's an accepted driver
           if (driverId != null) {
             await _db.child('driver_notifications/$driverId').push().set({
               'type': 'request_cancelled',
@@ -159,46 +169,28 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
             });
           }
         }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.requestCancelled)),
-        );
-
-        // Refresh the list
-        _loadUpcomingBookings();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Error cancelling request: $e')),
         );
       }
     }
   }
 
   Future<void> _findNewDriver(String requestId) async {
-    try {
-      // Reset request status to pending
-      await _db.child('requests/$requestId').update({
-        'status': 'pending',
-        'acceptedDriverId': null,
-        'acceptedOfferId': null,
-        'finalFare': null,
-      });
+    await _db.child('requests/$requestId').update({
+      'status': 'pending',
+      'acceptedDriverId': null,
+      'acceptedOfferId': null,
+      'finalFare': null,
+    });
 
-      // Remove all existing offers
-      await _db.child('customer_offers/$requestId').remove();
+    await _db.child('customer_offers/$requestId').remove();
 
-      // Navigate to waiting for response screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => WaitingForResponseScreen(requestId: requestId),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error finding new driver: $e')),
-      );
-    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => WaitingForResponseScreen(requestId: requestId)),
+    );
   }
 
   @override
@@ -206,11 +198,11 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
     final t = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F8F8),
       appBar: AppBar(
-        title: Text(t.upcomingBookings, style: const TextStyle(color: Color(0xFF004d4d))),
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 0.5,
+        title: Text(t.upcomingBookings, style: const TextStyle(color: Color(0xFF004d4d))),
         iconTheme: const IconThemeData(color: Color(0xFF004d4d)),
       ),
       body: _isLoading
@@ -218,20 +210,9 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text(
-                    'Loading bookings...',
-                    style: const TextStyle(color: Color(0xFF004d4d)),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Please check your internet connection',
-                    style: const TextStyle(
-                      color: Color(0xFF004d4d),
-                      fontSize: 12,
-                    ),
-                  ),
+                  CircularProgressIndicator(color: Color(0xFF004d4d)),
+                  SizedBox(height: 10),
+                  Text("Loading...", style: TextStyle(color: Color(0xFF004d4d))),
                 ],
               ),
             )
@@ -240,29 +221,32 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.schedule,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        t.noUpcomingBookings,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF004d4d),
-                        ),
-                      ),
+                      Icon(Icons.event_busy, size: 70, color: Colors.grey.shade400),
+                      SizedBox(height: 10),
+                      Text(t.noUpcomingBookings,
+                          style: TextStyle(fontSize: 18, color: Color(0xFF004d4d))),
                     ],
                   ),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _upcomingBookings.length,
-                  itemBuilder: (context, index) {
-                    final booking = _upcomingBookings[index];
-                    return Card(
+                  itemBuilder: (_, i) {
+                    final b = _upcomingBookings[i];
+
+                    return Container(
                       margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 6,
+                            offset: Offset(0, 3),
+                          )
+                        ],
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -272,100 +256,118 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  booking['loadName'] ?? 'N/A',
-                                  style: const TextStyle(
-                                    fontSize: 18,
+                                  b['loadName'] ?? 'N/A',
+                                  style: TextStyle(
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF004d4d),
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: booking['status'] == 'accepted'
-                                        ? Colors.orange
-                                        : Colors.green,
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: b['status'] == 'accepted' 
+                                        ? Colors.orange 
+                                        : b['status'] == 'dispatched'
+                                            ? Colors.blue
+                                            : Colors.green,
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    booking['status'] == 'accepted'
-                                        ? 'Accepted'
-                                        : 'In Progress',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    b['status'] == 'accepted' 
+                                        ? 'Accepted' 
+                                        : b['status'] == 'dispatched'
+                                            ? 'Dispatched'
+                                            : 'In Progress',
+                                    style: TextStyle(color: Colors.white, fontSize: 12),
                                   ),
-                                ),
+                                )
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${booking['loadType']} • ${booking['weight']} ${booking['weightUnit']}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF004d4d),
+
+                            SizedBox(height: 8),
+                            Text('${b['loadType']} • ${b['weight']} ${b['weightUnit']}',
+                                style: TextStyle(color: Color(0xFF004d4d))),
+
+                            SizedBox(height: 4),
+                            Text('Pickup: ${b['pickupTime'] ?? 'N/A'}',
+                                style: TextStyle(color: Color(0xFF004d4d))),
+
+                            SizedBox(height: 4),
+                            Text('Fare: Rs ${b['finalFare'] ?? b['offerFare']}',
+                                style: TextStyle(fontSize: 16, color: Colors.green.shade700)),
+
+                            SizedBox(height: 16),
+                            // Contact buttons row
+                            if (b['acceptedDriverId'] != null || b['acceptedEnterpriseId'] != null)
+                              Row(
+                                children: [
+                                  // Show call driver button if there's an accepted driver
+                                  if (b['acceptedDriverId'] != null)
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        icon: Icon(Icons.phone, size: 18),
+                                        label: Text(t.callDriver),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        onPressed: () => _callDriver(b['acceptedDriverId']),
+                                      ),
+                                    ),
+                                  // Show contact enterprise button if there's an accepted enterprise
+                                  if (b['acceptedEnterpriseId'] != null) ...[
+                                    if (b['acceptedDriverId'] != null) SizedBox(width: 10),
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        icon: Icon(Icons.business, size: 18),
+                                        label: Text('Contact Enterprise'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.blue,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        onPressed: () => _callEnterprise(b['acceptedEnterpriseId']),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Pickup: ${booking['pickupTime'] ?? 'N/A'}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF004d4d),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Fare: Rs ${booking['finalFare'] ?? booking['offerFare']}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: b['acceptedDriverId'] != null || b['acceptedEnterpriseId'] != null ? 10 : 0),
+                            // Cancel button row
                             Row(
                               children: [
                                 Expanded(
-                                  child: ElevatedButton.icon(
-                                    icon: const Icon(Icons.phone, size: 18),
-                                    label: Text(t.callDriver),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    onPressed: () => _callDriver(booking['acceptedDriverId']),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
                                   child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.cancel, size: 18),
+                                    icon: Icon(Icons.cancel, size: 18),
                                     label: Text(t.cancelRequest),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: Colors.red,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
-                                    onPressed: () => _cancelRequest(booking['requestId']),
+                                    onPressed: () => _cancelRequest(b['requestId']),
                                   ),
                                 ),
                               ],
                             ),
-                            if (booking['status'] == 'accepted') ...[
-                              const SizedBox(height: 8),
+
+                            // Only show find new driver for accepted status (not dispatched or in_progress)
+                            if (b['status'] == 'accepted') ...[
+                              SizedBox(height: 10),
                               SizedBox(
                                 width: double.infinity,
                                 child: TextButton.icon(
-                                  icon: const Icon(Icons.search, size: 18),
+                                  icon: Icon(Icons.search, size: 18),
                                   label: Text(t.findNewDriver),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.blue,
-                                  ),
-                                  onPressed: () => _findNewDriver(booking['requestId']),
+                                  style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                                  onPressed: () => _findNewDriver(b['requestId']),
                                 ),
                               ),
                             ],

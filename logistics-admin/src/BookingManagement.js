@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ref, onValue, off, update, remove } from 'firebase/database';
 import { database } from './firebase';
+import { calculateCommission } from './commissionCalculator';
 import './BookingManagement.css';
 
 function BookingManagement() {
@@ -53,6 +54,11 @@ function BookingManagement() {
 
     const filteredBookings = bookings
         .filter(booking => {
+            // Exclude pending bookings
+            if (booking.status === 'pending') {
+                return false;
+            }
+
             const user = getUserById(booking.customerId);
             const matchesSearch =
                 booking.loadName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -164,7 +170,6 @@ function BookingManagement() {
                         onChange={(e) => setFilterStatus(e.target.value)}
                     >
                         <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
                         <option value="accepted">Accepted</option>
                         <option value="in_progress">In Progress</option>
                         <option value="completed">Completed</option>
@@ -199,6 +204,7 @@ function BookingManagement() {
                             <th>Customer</th>
                             <th>Weight</th>
                             <th>Fare</th>
+                            <th>Commission</th>
                             <th>Status</th>
                             <th>Date</th>
                             <th>Actions</th>
@@ -230,13 +236,27 @@ function BookingManagement() {
                                         {booking.offerFare ? formatCurrency(booking.offerFare) : 'N/A'}
                                     </td>
                                     <td>
+                                        {(() => {
+                                            const fare = parseFloat(booking.finalFare || booking.offerFare) || 0;
+                                            if (fare > 0 && booking.status === 'completed') {
+                                                const commissionData = calculateCommission(fare);
+                                                return (
+                                                    <div className="commission-info">
+                                                        <div className="commission-amount">{formatCurrency(commissionData.commission)}</div>
+                                                        <div className="commission-percentage">({commissionData.percentage.toFixed(1)}%)</div>
+                                                    </div>
+                                                );
+                                            }
+                                            return <span className="commission-na">-</span>;
+                                        })()}
+                                    </td>
+                                    <td>
                                         <select
-                                            value={booking.status || 'pending'}
+                                            value={booking.status || 'accepted'}
                                             onChange={(e) => handleStatusChange(booking.id, e.target.value)}
                                             className="status-select"
                                             style={{ color: getStatusColor(booking.status) }}
                                         >
-                                            <option value="pending">Pending</option>
                                             <option value="accepted">Accepted</option>
                                             <option value="in_progress">In Progress</option>
                                             <option value="completed">Completed</option>
@@ -268,59 +288,132 @@ function BookingManagement() {
             </div>
 
             {/* Details Modal */}
-            {showDetailsModal && selectedBooking && (
-                <div className="modal-overlay">
-                    <div className="modal">
-                        <h3>Booking Details</h3>
-                        <div className="booking-details">
-                            <div className="detail-section">
-                                <h4>Load Information</h4>
-                                <div className="detail-grid">
-                                    <div><strong>Load Name:</strong> {selectedBooking.loadName || 'N/A'}</div>
-                                    <div><strong>Load Type:</strong> {selectedBooking.loadType || 'N/A'}</div>
-                                    <div><strong>Vehicle Type:</strong> {selectedBooking.vehicleType || 'N/A'}</div>
-                                    <div><strong>Weight:</strong> {selectedBooking.weight ? `${selectedBooking.weight} ${selectedBooking.weightUnit || 'kg'}` : 'N/A'}</div>
-                                    <div><strong>Quantity:</strong> {selectedBooking.quantity || 'N/A'}</div>
-                                    <div><strong>Insured:</strong> {selectedBooking.isInsured ? 'Yes' : 'No'}</div>
-                                </div>
-                            </div>
-
-                            <div className="detail-section">
-                                <h4>Customer Information</h4>
-                                <div className="detail-grid">
-                                    <div><strong>Name:</strong> {getUserById(selectedBooking.customerId).name || 'N/A'}</div>
-                                    <div><strong>Email:</strong> {getUserById(selectedBooking.customerId).email || 'N/A'}</div>
-                                    <div><strong>Phone:</strong> {getUserById(selectedBooking.customerId).phone || 'N/A'}</div>
-                                </div>
-                            </div>
-
-                            <div className="detail-section">
-                                <h4>Booking Information</h4>
-                                <div className="detail-grid">
-                                    <div><strong>Fare:</strong> {selectedBooking.offerFare ? formatCurrency(selectedBooking.offerFare) : 'N/A'}</div>
-                                    <div><strong>Pickup Time:</strong> {selectedBooking.pickupTime || 'N/A'}</div>
-                                    <div><strong>Status:</strong>
-                                        <span style={{ color: getStatusColor(selectedBooking.status) }}>
-                                            {selectedBooking.status || 'Pending'}
-                                        </span>
+            {showDetailsModal && selectedBooking && (() => {
+                const driver = selectedBooking.acceptedDriverId ? getUserById(selectedBooking.acceptedDriverId) : null;
+                const enterprise = selectedBooking.acceptedEnterpriseId ? getUserById(selectedBooking.acceptedEnterpriseId) : null;
+                
+                return (
+                    <div className="modal-overlay">
+                        <div className="modal">
+                            <h3>Booking Details</h3>
+                            <div className="booking-details">
+                                <div className="detail-section">
+                                    <h4>Load Information</h4>
+                                    <div className="detail-grid">
+                                        <div><strong>Load Name:</strong> {selectedBooking.loadName || 'N/A'}</div>
+                                        <div><strong>Load Type:</strong> {selectedBooking.loadType || 'N/A'}</div>
+                                        <div><strong>Vehicle Type:</strong> {selectedBooking.vehicleType || 'N/A'}</div>
+                                        <div><strong>Weight:</strong> {selectedBooking.weight ? `${selectedBooking.weight} ${selectedBooking.weightUnit || 'kg'}` : 'N/A'}</div>
+                                        <div><strong>Quantity:</strong> {selectedBooking.quantity || 'N/A'}</div>
+                                        <div><strong>Insured:</strong> {selectedBooking.isInsured ? 'Yes' : 'No'}</div>
                                     </div>
-                                    <div><strong>Created:</strong> {formatDate(selectedBooking.timestamp)}</div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="modal-actions">
-                            <button onClick={() => setShowDetailsModal(false)}>
-                                Close
-                            </button>
+                                <div className="detail-section">
+                                    <h4>Customer Information</h4>
+                                    <div className="detail-grid">
+                                        <div><strong>Name:</strong> {getUserById(selectedBooking.customerId).name || 'N/A'}</div>
+                                        <div><strong>Email:</strong> {getUserById(selectedBooking.customerId).email || 'N/A'}</div>
+                                        <div><strong>Phone:</strong> {getUserById(selectedBooking.customerId).phone || 'N/A'}</div>
+                                    </div>
+                                </div>
+
+                                <div className="detail-section">
+                                    <h4>Location Information</h4>
+                                    <div className="detail-grid">
+                                        <div><strong>Pickup Location:</strong> {selectedBooking.pickupLocation || 'N/A'}</div>
+                                        <div><strong>Destination Location:</strong> {selectedBooking.destinationLocation || 'N/A'}</div>
+                                    </div>
+                                </div>
+
+                                <div className="detail-section">
+                                    <h4>Booking Information</h4>
+                                    <div className="detail-grid">
+                                        <div><strong>Fare:</strong> {selectedBooking.offerFare ? formatCurrency(selectedBooking.offerFare) : 'N/A'}</div>
+                                        {selectedBooking.finalFare && (
+                                            <div><strong>Final Fare:</strong> {formatCurrency(selectedBooking.finalFare)}</div>
+                                        )}
+                                        {(() => {
+                                            const fare = parseFloat(selectedBooking.finalFare || selectedBooking.offerFare) || 0;
+                                            if (fare > 0 && selectedBooking.status === 'completed') {
+                                                const commissionData = calculateCommission(fare);
+                                                return (
+                                                    <>
+                                                        <div><strong>Commission:</strong> {formatCurrency(commissionData.commission)} ({commissionData.percentage.toFixed(1)}%)</div>
+                                                        <div><strong>Driver Receives:</strong> {formatCurrency(commissionData.driverReceives)}</div>
+                                                    </>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+                                        <div><strong>Pickup Time:</strong> {selectedBooking.pickupTime || 'N/A'}</div>
+                                        <div><strong>Status:</strong>
+                                            <span style={{ color: getStatusColor(selectedBooking.status) }}>
+                                                {selectedBooking.status || 'Pending'}
+                                            </span>
+                                        </div>
+                                        <div><strong>Created:</strong> {formatDate(selectedBooking.timestamp)}</div>
+                                    </div>
+                                </div>
+
+                                {/* Driver Information */}
+                                {driver && (
+                                    <div className="detail-section">
+                                        <h4>Driver Information</h4>
+                                        <div className="detail-grid">
+                                            <div><strong>Driver Name:</strong> {driver.name || driver.full_name || 'N/A'}</div>
+                                            <div><strong>Driver Email:</strong> {driver.email || 'N/A'}</div>
+                                            <div><strong>Driver Phone:</strong> {driver.phone || 'N/A'}</div>
+                                            {driver.driverDetails && (
+                                                <>
+                                                    <div><strong>CNIC:</strong> {driver.driverDetails.cnic || 'N/A'}</div>
+                                                    <div><strong>License Number:</strong> {driver.driverDetails.licenseNumber || 'N/A'}</div>
+                                                    <div><strong>Experience:</strong> {driver.driverDetails.experienceYears || driver.driverDetails.experience || 'N/A'} years</div>
+                                                </>
+                                            )}
+                                            {driver.vehicleInfo && (
+                                                <>
+                                                    <div><strong>Vehicle:</strong> {driver.vehicleInfo.makeModel || driver.vehicleInfo.vehicleName || 'N/A'}</div>
+                                                    <div><strong>Vehicle Type:</strong> {driver.vehicleInfo.type || driver.vehicleInfo.vehicleType || 'N/A'}</div>
+                                                    <div><strong>Vehicle Number:</strong> {driver.vehicleInfo.registrationNumber || driver.vehicleInfo.vehicleNumber || 'N/A'}</div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Enterprise Information */}
+                                {enterprise && (
+                                    <div className="detail-section">
+                                        <h4>Enterprise Information</h4>
+                                        <div className="detail-grid">
+                                            <div><strong>Enterprise Name:</strong> {enterprise.companyName || enterprise.enterpriseDetails?.companyName || enterprise.name || enterprise.full_name || 'N/A'}</div>
+                                            <div><strong>Email:</strong> {enterprise.email || 'N/A'}</div>
+                                            <div><strong>Phone:</strong> {enterprise.phone || 'N/A'}</div>
+                                            {enterprise.enterpriseDetails && (
+                                                <>
+                                                    <div><strong>Address:</strong> {enterprise.enterpriseDetails.address || 'N/A'}</div>
+                                                    <div><strong>Registration Number:</strong> {enterprise.enterpriseDetails.registrationNumber || 'N/A'}</div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="modal-actions">
+                                <button onClick={() => setShowDetailsModal(false)}>
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Summary */}
             <div className="summary">
-                <p>Showing {filteredBookings.length} of {bookings.length} bookings</p>
+                <p>Showing {filteredBookings.length} of {bookings.filter(b => b.status !== 'pending').length} bookings (pending bookings excluded)</p>
             </div>
         </div>
     );

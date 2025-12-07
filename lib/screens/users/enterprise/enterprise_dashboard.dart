@@ -7,7 +7,14 @@ import 'package:logistics_app/screens/users/enterprise/enterprise_vehicle_manage
 import 'package:logistics_app/screens/users/enterprise/enterprise_driver_management.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_new_offers.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_bookings.dart';
-import 'package:logistics_app/screens/users/enterprise/enterprise_profile.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise_active_trips.dart';
+import 'package:logistics_app/services/location_permission_service.dart';
+
+// Teal color palette
+const kTealDark = Color(0xFF004D4D);
+const kTeal = Color(0xFF007D7D);
+const kTealLight = Color(0xFFB2DFDB);
+const kTealBg = Color(0xFFE0F2F1);
 
 class EnterpriseDashboard extends StatefulWidget {
   const EnterpriseDashboard({super.key});
@@ -23,6 +30,7 @@ class _EnterpriseDashboardState extends State<EnterpriseDashboard> {
   int _currentIndex = 0;
   bool _isLoading = true;
   Map<String, dynamic>? _enterpriseData;
+  String? _userName;
   int _vehicleCount = 0;
   int _driverCount = 0;
   int _newOffersCount = 0;
@@ -32,6 +40,17 @@ class _EnterpriseDashboardState extends State<EnterpriseDashboard> {
   void initState() {
     super.initState();
     _loadEnterpriseData();
+    _requestLocationPermission();
+  }
+
+  /// Request location permission when enterprise logs in
+  Future<void> _requestLocationPermission() async {
+    // Wait a bit for the screen to be fully built
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      final permissionService = LocationPermissionService();
+      await permissionService.requestLocationPermission(context);
+    }
   }
 
   Future<void> _loadEnterpriseData() async {
@@ -65,20 +84,61 @@ class _EnterpriseDashboardState extends State<EnterpriseDashboard> {
           print('🔍 DEBUG: Is profile complete: ${userData['isProfileComplete']}');
           
           _enterpriseData = userData['enterpriseDetails'];
+          // Get user's name from userData or Firebase Auth
+          // Check multiple possible name fields (prioritize 'name' as that's what registration uses)
+          String? name = userData['name'] as String?;
+          if (name == null || name.trim().isEmpty) {
+            name = userData['full_name'] as String?;
+          }
+          if (name == null || name.trim().isEmpty) {
+            name = userData['fullName'] as String?;
+          }
+          if (name == null || name.trim().isEmpty) {
+            name = userData['companyName'] as String?;
+          }
+          if (name == null || name.trim().isEmpty) {
+            name = _enterpriseData?['enterpriseName'] as String?;
+          }
+          if (name == null || name.trim().isEmpty) {
+            name = _enterpriseData?['contactPerson'] as String?;
+          }
+          if (name == null || name.trim().isEmpty) {
+            name = user.displayName;
+          }
+          if (name == null || name.trim().isEmpty) {
+            name = user.email?.split('@')[0];
+          }
+          _userName = name?.trim();
           print('🔍 DEBUG: Enterprise details: $_enterpriseData');
+          print('🔍 DEBUG: User name from DB: ${userData['name']}');
+          print('🔍 DEBUG: Final user name: $_userName');
           
-          // Count vehicles, drivers, offers, and trips
-          await _loadAllCounts();
-          
-          print('🔍 DEBUG: Final counts - Vehicles: $_vehicleCount, Drivers: $_driverCount, Offers: $_newOffersCount, Trips: $_bookedTripsCount');
+          // Update state after loading name
+          if (mounted) {
+            setState(() {});
+          }
         } else {
           print('🔍 DEBUG: No user data found in database for user: ${user.uid}');
           print('🔍 DEBUG: Showing dashboard with default values');
+          // Still try to get name from Firebase Auth
+          _userName = user.displayName ?? user.email?.split('@')[0];
+          
+          // Update state after setting fallback name
+          if (mounted) {
+            setState(() {});
+          }
         }
+        
+        // Always load counts regardless of whether user data exists
+        // Drivers and vehicles might exist even if parent node doesn't
+        await _loadAllCounts();
+        
+        print('🔍 DEBUG: Final counts - Vehicles: $_vehicleCount, Drivers: $_driverCount, Offers: $_newOffersCount, Trips: $_bookedTripsCount');
       } catch (e) {
         print('🔍 DEBUG: Error loading enterprise data: $e');
         print('🔍 DEBUG: Error type: ${e.runtimeType}');
-        // Continue to show dashboard even if data loading fails
+        // Still try to load counts even if user data loading fails
+        await _loadAllCounts();
       }
     } catch (e) {
       print('🔍 DEBUG: Critical error in _loadEnterpriseData: $e');
@@ -95,55 +155,48 @@ class _EnterpriseDashboardState extends State<EnterpriseDashboard> {
 
       print('🔍 DEBUG: Starting to load counts for user: ${user.uid}');
 
-      // Load vehicles count - check both paths
+      // Load vehicles count - only from users path (vehicles are stored in users/${user.uid}/vehicles)
       final usersVehiclesSnapshot = await _db.child('users/${user.uid}/vehicles').get();
-      final enterprisesVehiclesSnapshot = await _db.child('enterprises/${user.uid}/vehicles').get();
       
       print('🔍 DEBUG: Users vehicles exists: ${usersVehiclesSnapshot.exists}');
-      print('🔍 DEBUG: Enterprises vehicles exists: ${enterprisesVehiclesSnapshot.exists}');
       
       if (usersVehiclesSnapshot.exists) {
-        print('🔍 DEBUG: Users vehicles children count: ${usersVehiclesSnapshot.children.length}');
-        for (final child in usersVehiclesSnapshot.children) {
-          print('🔍 DEBUG: Users vehicle key: ${child.key}');
+        final vehiclesData = usersVehiclesSnapshot.value;
+        if (vehiclesData != null && vehiclesData is Map) {
+          _vehicleCount = vehiclesData.length;
+          print('🔍 DEBUG: Users vehicles count: $_vehicleCount');
+        } else {
+          _vehicleCount = 0;
+          print('🔍 DEBUG: Users vehicles data is null or not a Map');
         }
+      } else {
+        _vehicleCount = 0;
+        print('🔍 DEBUG: Users vehicles snapshot does not exist');
       }
       
-      if (enterprisesVehiclesSnapshot.exists) {
-        print('🔍 DEBUG: Enterprises vehicles children count: ${enterprisesVehiclesSnapshot.children.length}');
-        for (final child in enterprisesVehiclesSnapshot.children) {
-          print('🔍 DEBUG: Enterprises vehicle key: ${child.key}');
-        }
-      }
+      print('🔍 DEBUG: Total vehicles count: $_vehicleCount');
       
-      int usersVehiclesCount = usersVehiclesSnapshot.exists ? usersVehiclesSnapshot.children.length : 0;
-      int enterprisesVehiclesCount = enterprisesVehiclesSnapshot.exists ? enterprisesVehiclesSnapshot.children.length : 0;
-      _vehicleCount = usersVehiclesCount + enterprisesVehiclesCount;
-      
-      // Load drivers count - check both paths
+      // Load drivers count - only from users path (enterprise_driver_management.dart)
       final usersDriversSnapshot = await _db.child('users/${user.uid}/drivers').get();
-      final enterprisesDriversSnapshot = await _db.child('enterprises/${user.uid}/drivers').get();
       
       print('🔍 DEBUG: Users drivers exists: ${usersDriversSnapshot.exists}');
-      print('🔍 DEBUG: Enterprises drivers exists: ${enterprisesDriversSnapshot.exists}');
       
       if (usersDriversSnapshot.exists) {
-        print('🔍 DEBUG: Users drivers children count: ${usersDriversSnapshot.children.length}');
-        for (final child in usersDriversSnapshot.children) {
-          print('🔍 DEBUG: Users driver key: ${child.key}');
+        final driversData = usersDriversSnapshot.value;
+        if (driversData != null && driversData is Map) {
+          _driverCount = driversData.length;
+          print('🔍 DEBUG: Users drivers count: $_driverCount');
+          for (final key in driversData.keys) {
+            print('🔍 DEBUG: Users driver key: $key');
+          }
+        } else {
+          _driverCount = 0;
+          print('🔍 DEBUG: Users drivers data is null or not a Map');
         }
+      } else {
+        _driverCount = 0;
+        print('🔍 DEBUG: Users drivers snapshot does not exist');
       }
-      
-      if (enterprisesDriversSnapshot.exists) {
-        print('🔍 DEBUG: Enterprises drivers children count: ${enterprisesDriversSnapshot.children.length}');
-        for (final child in enterprisesDriversSnapshot.children) {
-          print('🔍 DEBUG: Enterprises driver key: ${child.key}');
-        }
-      }
-      
-      int usersDriversCount = usersDriversSnapshot.exists ? usersDriversSnapshot.children.length : 0;
-      int enterprisesDriversCount = enterprisesDriversSnapshot.exists ? enterprisesDriversSnapshot.children.length : 0;
-      _driverCount = usersDriversCount + enterprisesDriversCount;
       
       // Load new offers count (requests where enterprise drivers are involved)
       await _loadNewOffersCount();
@@ -151,7 +204,7 @@ class _EnterpriseDashboardState extends State<EnterpriseDashboard> {
       // Load booked trips count (accepted requests)
       await _loadBookedTripsCount();
       
-      print('🔍 DEBUG: Final counts - Vehicles: $_vehicleCount (users: $usersVehiclesCount, enterprises: $enterprisesVehiclesCount), Drivers: $_driverCount (users: $usersDriversCount, enterprises: $enterprisesDriversCount), Offers: $_newOffersCount, Trips: $_bookedTripsCount');
+      print('🔍 DEBUG: Final counts - Vehicles: $_vehicleCount, Drivers: $_driverCount, Offers: $_newOffersCount, Trips: $_bookedTripsCount');
       
       // Force UI update
       setState(() {});
@@ -236,320 +289,368 @@ class _EnterpriseDashboardState extends State<EnterpriseDashboard> {
       const EnterpriseVehicleManagement(),
       const EnterpriseDriverManagement(),
       const EnterpriseBookingsScreen(),
-      const EnterpriseProfileScreen(),
+      const EnterpriseActiveTripsScreen(),
+      const EnterpriseNewOffersScreen(),
     ];
 
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.dashboard),
-            label: 'Dashboard',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [kTeal, kTealDark],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.local_shipping),
-            label: 'Vehicles',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person),
-            label: 'Drivers',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.assignment_turned_in),
-            label: 'Bookings',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, -3),
+            )
+          ],
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Colors.white70,
+          showUnselectedLabels: false,
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+            // Refresh counts when switching back to dashboard tab
+            if (index == 0) {
+              _loadAllCounts();
+            }
+          },
+          items: [
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.dashboard),
+              label: t.dashboard,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.local_shipping),
+              label: t.vehicles,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.person),
+              label: t.drivers,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.assignment_turned_in),
+              label: t.bookings,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.directions_car),
+              label: 'Active Trips',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.notifications_active),
+              label: t.newOffers,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildDashboardTab(AppLocalizations t) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1a1a1a), Color(0xFF2d2d2d)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(t),
+                      const SizedBox(height: 28),
+                      _buildSectionTitle(t.keyMetrics),
+                      const SizedBox(height: 14),
+                      // FULL WIDTH CARDS
+                      _buildFullWidthMetricCard(
+                        icon: Icons.local_shipping,
+                        title: t.totalVehicles,
+                        count: _vehicleCount,
+                        color: Colors.orange.shade700,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildFullWidthMetricCard(
+                        icon: Icons.person,
+                        title: t.totalDrivers,
+                        count: _driverCount,
+                        color: Colors.green.shade700,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildFullWidthMetricCard(
+                        icon: Icons.assignment_turned_in,
+                        title: t.activeBookings,
+                        count: _bookedTripsCount,
+                        color: Colors.purple.shade700,
+                      ),
+                      const SizedBox(height: 30),
+                      _buildSectionTitle(t.quickActions),
+                      const SizedBox(height: 12),
+                      _buildActionButtons(t),
+                    ],
+                  ),
+                ),
+        ),
+      ),
       appBar: AppBar(
-        title: Text(t.enterpriseDashboard, style: const TextStyle(color: Color(0xFF004d4d))),
-        backgroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1a1a1a), Color(0xFF2d2d2d)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF004d4d)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadEnterpriseData,
+        iconTheme: const IconThemeData(color: Colors.white),
+        centerTitle: true,
+        title: const Text(
+          'LAARI',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
           ),
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: _addTestData,
-          ),
-        ],
+        ),
       ),
       drawer: const EnterpriseDrawer(),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Welcome Header
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.blueAccent, Colors.blue],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${t.welcomeBack},',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _enterpriseData?['enterpriseName'] ?? 'Enterprise User',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Manage your logistics operations efficiently',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Key Metrics
-                  Text(
-                    'Key Metrics',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF004d4d),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Four main metrics in a 2x2 grid
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricCard(
-                          icon: Icons.local_shipping,
-                          title: 'Total Vehicles',
-                          count: _vehicleCount,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildMetricCard(
-                          icon: Icons.person,
-                          title: 'Total Drivers',
-                          count: _driverCount,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricCard(
-                          icon: Icons.assignment_turned_in,
-                          title: 'Active Bookings',
-                          count: _bookedTripsCount,
-                          color: Colors.purple,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildMetricCard(
-                          icon: Icons.notifications_active,
-                          title: 'Pending Offers',
-                          count: _newOffersCount,
-                          color: Colors.blue,
-                          onTap: () => _navigateToNewOffers(),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Quick Actions
-                  Text(
-                    t.quickActions,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF004d4d),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                   GridView.count(
-                     shrinkWrap: true,
-                     physics: const NeverScrollableScrollPhysics(),
-                     crossAxisCount: 2,
-                     crossAxisSpacing: 16,
-                     mainAxisSpacing: 16,
-                     childAspectRatio: 1.5,
-                     children: [
-                       _buildActionCard(
-                         icon: Icons.assignment_turned_in,
-                         title: 'Bookings',
-                         subtitle: 'View active bookings',
-                         color: Colors.purple,
-                         onTap: () {
-                           setState(() {
-                             _currentIndex = 3; // Switch to Bookings tab
-                           });
-                         },
-                       ),
-                       _buildActionCard(
-                         icon: Icons.settings,
-                         title: t.settings,
-                         subtitle: t.manageSettings,
-                         color: Colors.grey,
-                         onTap: () {
-                           setState(() {
-                             _currentIndex = 4; // Switch to Profile tab
-                           });
-                         },
-                       ),
-                     ],
-                   ),
-                ],
-              ),
-            ),
     );
   }
 
-  Widget _buildMetricCard({
+  Widget _buildFullWidthMetricCard({
     required IconData icon,
     required String title,
     required int count,
     required Color color,
     VoidCallback? onTap,
   }) {
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 32,
-                color: color,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                count.toString(),
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF004d4d),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [kTeal, kTealDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withOpacity(.1),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 32,
+              backgroundColor: color.withOpacity(.2),
+              child: Icon(icon, color: color, size: 36),
+            ),
+            const SizedBox(width: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  count.toString(),
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            )
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildActionCard({
+  Widget _buildActionButtons(AppLocalizations t) {
+    return Column(
+      children: [
+        _buildActionButton(
+          icon: Icons.assignment_turned_in,
+          title: t.bookings,
+          subtitle: t.viewActiveBookings,
+          color: Colors.purple.shade700,
+          onTap: () => setState(() => _currentIndex = 3),
+        ),
+        const SizedBox(height: 16),
+        _buildActionButton(
+          icon: Icons.notifications_active,
+          title: t.newOffers,
+          subtitle: t.viewNewOffers,
+          color: Colors.blue.shade700,
+          onTap: () => setState(() => _currentIndex = 4),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
     required IconData icon,
     required String title,
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 32,
-                color: color,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF004d4d),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF004d4d),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [kTeal, kTealDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withOpacity(.1),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 32,
+              backgroundColor: color.withOpacity(.2),
+              child: Icon(icon, color: color, size: 36),
+            ),
+            const SizedBox(width: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(.7),
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(AppLocalizations t) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [kTeal, kTealDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "${t.welcomeBack},",
+            style: const TextStyle(color: Colors.white70, fontSize: 18),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _userName ?? _enterpriseData?['enterpriseName'] ?? t.enterpriseUser,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            t.manageLogisticsOperations,
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
       ),
     );
   }
@@ -563,60 +664,4 @@ class _EnterpriseDashboardState extends State<EnterpriseDashboard> {
     );
   }
 
-  Future<void> _addTestData() async {
-    try {
-      final user = _auth.currentUser;
-      if (user == null) return;
-
-      // Add test vehicle to users path
-      await _db.child('users/${user.uid}/vehicles').push().set({
-        'makeModel': 'Test Vehicle',
-        'type': 'Truck',
-        'color': 'Blue',
-        'capacity': '5000 kg',
-        'addedAt': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      // Add test driver to users path
-      await _db.child('users/${user.uid}/drivers').push().set({
-        'name': 'Test Driver',
-        'phone': '+1234567890',
-        'cnic': '12345-1234567-1',
-        'licenseNumber': 'LIC123456',
-        'experienceYears': 5,
-        'addedAt': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      // Add test vehicle to enterprises path
-      await _db.child('enterprises/${user.uid}/vehicles').push().set({
-        'vehicleName': 'Enterprise Vehicle',
-        'vehicleType': 'Van',
-        'vehicleNumber': 'ABC-123',
-        'capacity': 2000.0,
-        'addedAt': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      // Add test driver to enterprises path
-      await _db.child('enterprises/${user.uid}/drivers').push().set({
-        'driverName': 'Enterprise Driver',
-        'driverPhone': '+0987654321',
-        'driverCnic': '98765-9876543-9',
-        'licenseNumber': 'LIC789012',
-        'experience': 3,
-        'addedAt': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Test data added successfully!')),
-      );
-
-      // Reload counts
-      await _loadAllCounts();
-    } catch (e) {
-      print('🔍 DEBUG: Error adding test data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error adding test data: $e')),
-      );
-    }
-  }
 }

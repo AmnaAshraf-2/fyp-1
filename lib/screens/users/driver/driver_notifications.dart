@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,6 +16,7 @@ class _DriverNotificationsScreenState extends State<DriverNotificationsScreen> {
   final _auth = FirebaseAuth.instance;
   bool _isLoading = true;
   List<Map<String, dynamic>> _notifications = [];
+  StreamSubscription<DatabaseEvent>? _notificationsSubscription;
 
   @override
   void initState() {
@@ -22,33 +24,59 @@ class _DriverNotificationsScreenState extends State<DriverNotificationsScreen> {
     _loadNotifications();
   }
 
-  Future<void> _loadNotifications() async {
+  @override
+  void dispose() {
+    _notificationsSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _loadNotifications() {
     try {
       final user = _auth.currentUser;
-      if (user == null) return;
+      if (user == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
-      // Listen for changes in driver notifications
-      _db.child('driver_notifications/$user.uid').onValue.listen((event) {
-        if (event.snapshot.exists) {
-          final notifications = <Map<String, dynamic>>[];
-          for (final notification in event.snapshot.children) {
-            final notificationData = Map<String, dynamic>.from(notification.value as Map);
-            notificationData['notificationId'] = notification.key;
-            notifications.add(notificationData);
+      // Set up real-time listener for driver notifications
+      _notificationsSubscription = _db
+          .child('driver_notifications/${user.uid}')
+          .onValue
+          .listen(
+        (event) {
+          if (mounted) {
+            if (event.snapshot.exists) {
+              final notifications = <Map<String, dynamic>>[];
+              for (final notification in event.snapshot.children) {
+                final notificationData = Map<String, dynamic>.from(notification.value as Map);
+                notificationData['notificationId'] = notification.key;
+                notifications.add(notificationData);
+              }
+              // Sort by timestamp (newest first)
+              notifications.sort((a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0));
+              setState(() {
+                _notifications = notifications;
+                _isLoading = false;
+              });
+            } else {
+              setState(() {
+                _notifications = [];
+                _isLoading = false;
+              });
+            }
           }
-          // Sort by timestamp (newest first)
-          notifications.sort((a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0));
-          setState(() {
-            _notifications = notifications;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _notifications = [];
-            _isLoading = false;
-          });
-        }
-      });
+        },
+        onError: (error) {
+          print('Error listening to notifications: $error');
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        },
+      );
     } catch (e) {
       print('Error loading notifications: $e');
       setState(() {
@@ -68,14 +96,15 @@ class _DriverNotificationsScreenState extends State<DriverNotificationsScreen> {
   }
 
   Future<void> _clearAllNotifications() async {
+    final t = AppLocalizations.of(context)!;
     try {
       await _db.child('driver_notifications/${_auth.currentUser!.uid}').remove();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All notifications cleared')),
+        SnackBar(content: Text(t.allNotificationsCleared)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error clearing notifications: $e')),
+        SnackBar(content: Text('${t.errorClearingNotifications}: $e')),
       );
     }
   }
@@ -112,7 +141,7 @@ class _DriverNotificationsScreenState extends State<DriverNotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications', style: TextStyle(color: Colors.white)),
+        title: Text(t.notifications, style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF004d4d), // Dark teal color
         actions: [
           if (_notifications.isNotEmpty)
@@ -136,7 +165,7 @@ class _DriverNotificationsScreenState extends State<DriverNotificationsScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No notifications',
+                        t.noNotifications,
                         style: TextStyle(
                           fontSize: 18,
                           color: Colors.grey[600],
@@ -153,8 +182,8 @@ class _DriverNotificationsScreenState extends State<DriverNotificationsScreen> {
                     final isRead = notification['isRead'] == true;
                     
                     return Card(
+                      color: Colors.white,
                       margin: const EdgeInsets.only(bottom: 8),
-                      color: isRead ? Colors.grey[50] : Colors.white,
                       child: ListTile(
                         leading: CircleAvatar(
                           backgroundColor: _getNotificationColor(notification['type']).withOpacity(0.1),
@@ -167,12 +196,13 @@ class _DriverNotificationsScreenState extends State<DriverNotificationsScreen> {
                           notification['message'] ?? 'Notification',
                           style: TextStyle(
                             fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                            color: const Color(0xFF004d4d),
                           ),
                         ),
                         subtitle: Text(
                           _formatTimestamp(notification['timestamp']),
-                          style: TextStyle(
-                            color: Colors.grey[600],
+                          style: const TextStyle(
+                            color: Color(0xFF004d4d),
                             fontSize: 12,
                           ),
                         ),
@@ -189,20 +219,21 @@ class _DriverNotificationsScreenState extends State<DriverNotificationsScreen> {
   }
 
   String _formatTimestamp(int? timestamp) {
-    if (timestamp == null) return 'Unknown time';
+    final t = AppLocalizations.of(context)!;
+    if (timestamp == null) return t.unknownTime;
     
     final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
     final difference = now.difference(dateTime);
     
     if (difference.inDays > 0) {
-      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+      return '${difference.inDays} ${difference.inDays == 1 ? t.dayAgo : t.daysAgo}';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+      return '${difference.inHours} ${difference.inHours == 1 ? t.hourAgo : t.hoursAgo}';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+      return '${difference.inMinutes} ${difference.inMinutes == 1 ? t.minuteAgo : t.minutesAgo}';
     } else {
-      return 'Just now';
+      return t.justNow;
     }
   }
 }

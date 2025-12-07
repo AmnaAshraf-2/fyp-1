@@ -10,7 +10,15 @@ import 'package:logistics_app/splash/welcome.dart';
 import 'package:logistics_app/screens/users/driver/drivers.dart';
 import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_dashboard.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logistics_app/main.dart';
+import 'package:logistics_app/services/location_permission_service.dart';
+
+// Import Google Sign-In with conditional import for web
+import 'package:google_sign_in/google_sign_in.dart'
+    if (dart.library.html) 'package:logistics_app/screens/reg_web_stub.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,6 +36,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _navigateAfterLogin(User user) async {
     try {
+      // Load user-specific language preference
+      final prefs = await SharedPreferences.getInstance();
+      final userLanguageCode = prefs.getString('languageCode_${user.uid}') ?? 'en';
+      MyApp.setLocale(context, Locale(userLanguageCode));
+      
       final userSnapshot = await FirebaseDatabase.instance
           .ref('users/${user.uid}')
           .get();
@@ -52,14 +65,21 @@ class _LoginScreenState extends State<LoginScreen> {
           final vehicleInfo = userData['vehicleInfo'];
           final isProfileComplete = userData['isProfileComplete'] ?? false;
           
-          // If registration is complete, go directly to dashboard
+          // If registration is complete, request location permission then go to dashboard
           if (driverDetails != null && 
               vehicleInfo != null && 
               isProfileComplete == true) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (c) => const DriversScreen()),
-            );
+            // Request location permission for drivers (needed to show nearby customers)
+            if (mounted && !kIsWeb) {
+              final locationService = LocationPermissionService();
+              await locationService.requestLocationPermission(context);
+            }
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (c) => const DriversScreen()),
+              );
+            }
             return;
           }
           // If incomplete, show welcome screen (which will redirect to registration)
@@ -77,10 +97,17 @@ class _LoginScreenState extends State<LoginScreen> {
           final isProfileComplete = userData['isProfileComplete'] ?? false;
           
           if (enterpriseDetails != null && isProfileComplete == true) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (c) => const EnterpriseDashboard()),
-            );
+            // Request location permission for enterprises (needed to show nearby customers)
+            if (mounted && !kIsWeb) {
+              final locationService = LocationPermissionService();
+              await locationService.requestLocationPermission(context);
+            }
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (c) => const EnterpriseDashboard()),
+              );
+            }
             return;
           }
           shouldShowWelcome = true;
@@ -105,91 +132,95 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // /// Google Sign-In function
-  // Future<void> _signInWithGoogle() async {
-  //   setState(() => isLoading = true);
+  /// Google Sign-In function for login (v7.x compatible)
+  Future<void> _signInWithGoogle() async {
+    if (mounted) {
+      setState(() => isLoading = true);
+    }
 
-  //   try {
-  //     // Step 1: Trigger Google Sign-In with web client ID
-  //     final GoogleSignInAccount? googleUser = await GoogleSignIn(
-  //       clientId: "225444114745-56stpvja0vlg37g37pt8mkrc0bm13pom.apps.googleusercontent.com",
-  //       scopes: ['email'],
-  //     ).signIn();
+    try {
+      UserCredential userCredential;
+      GoogleSignInAccount? googleUser;
 
-  //     if (googleUser == null) {
-  //       Fluttertoast.showToast(msg: "Google Sign-In cancelled");
-  //       setState(() => isLoading = false);
-  //       return;
-  //     }
+      if (kIsWeb) {
+        // Web Google Sign-In
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        // Mobile Google Sign-In (v7.x)
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        googleUser = await googleSignIn.signIn();
 
-  //     // Step 2: Obtain auth details
-  //     final GoogleSignInAuthentication googleAuth =
-  //         await googleUser.authentication;
+        if (googleUser == null) {
+          Fluttertoast.showToast(msg: "Google Sign-In cancelled");
+          if (mounted) {
+            setState(() => isLoading = false);
+          }
+          return;
+        }
 
-  //     // Step 3: Create a credential
-  //     final OAuthCredential credential = GoogleAuthProvider.credential(
-  //       accessToken: googleAuth.accessToken,
-  //       idToken: googleAuth.idToken,
-  //     );
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+        userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      }
 
-  //     // Step 4: Sign in to Firebase
-  //     final UserCredential userCredential =
-  //         await FirebaseAuth.instance.signInWithCredential(credential);
+      // Check if user exists in realtime db
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref("users/${userCredential.user!.uid}")
+          .get();
 
-  //     // Step 5: Check if user exists in database, if not create profile
-  //     await _createOrUpdateUserProfile(userCredential.user!, googleUser);
+      if (!userSnapshot.exists) {
+        // Not registered → log them out and redirect
+        await FirebaseAuth.instance.signOut();
+        if (!kIsWeb) {
+          await GoogleSignIn().signOut();
+        }
+        
+        Fluttertoast.showToast(
+          msg: "Account not found. Please register first.",
+          toastLength: Toast.LENGTH_LONG,
+        );
+        
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const RegisterScreen()),
+          );
+        }
+        return;
+      }
 
-  //     // Step 6: Navigate to welcome screen
-  //     Navigator.pushReplacement(
-  //       context,
-  //       MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-  //     );
-
-  //     Fluttertoast.showToast(msg: "Successfully signed in with Google");
-  //   } catch (e) {
-  //     Fluttertoast.showToast(msg: "Error signing in with Google: $e");
-  //   } finally {
-  //     setState(() => isLoading = false);
-  //   }
-  // }
-
-  // /// Create or update user profile in database
-  // Future<void> _createOrUpdateUserProfile(User user, GoogleSignInAccount googleUser) async {
-  //   try {
-  //     final database = FirebaseDatabase.instance.ref();
-  //     final userRef = database.child('users/${user.uid}');
+      // User exists → save prefs
+      final prefs = await SharedPreferences.getInstance();
+      final userData = userSnapshot.value as Map;
+      await prefs.setString('full_name', userData['name'] ?? '');
+      await prefs.setString('profile_image', userData['profileImage'] ?? '');
       
-  //     // Check if user already exists
-  //     final snapshot = await userRef.get();
+      final langKey = 'languageCode_${userCredential.user!.uid}';
+      if (!prefs.containsKey(langKey)) {
+        await prefs.setString(langKey, 'en');
+      }
+
+      Fluttertoast.showToast(msg: "Successfully signed in");
       
-  //     if (!snapshot.exists) {
-  //       // Create new user profile
-  //       await userRef.set({
-  //         'uid': user.uid,
-  //         'email': user.email,
-  //         'name': googleUser.displayName ?? 'Google User',
-  //         'phone': user.phoneNumber ?? '',
-  //         'role': 'customer', // Default role
-  //         'profileImage': googleUser.photoUrl ?? '',
-  //         'isGoogleUser': true,
-  //         'createdAt': DateTime.now().millisecondsSinceEpoch,
-  //       });
-  //     } else {
-  //       // Update existing user with Google info
-  //       await userRef.update({
-  //         'name': googleUser.displayName ?? 'Google User',
-  //         'profileImage': googleUser.photoUrl ?? '',
-  //         'isGoogleUser': true,
-  //         'lastLoginAt': DateTime.now().millisecondsSinceEpoch,
-  //       });
-  //     }
-  //   } catch (e) {
-  //     print('Error creating/updating user profile: $e');
-  //   }
-  // }
+      if (mounted) {
+        await _navigateAfterLogin(userCredential.user!);
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Google Sign-In failed: $e");
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() => isLoading = true);
 
     try {
       final userCredential =
@@ -199,9 +230,14 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (userCredential.user != null) {
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
         Fluttertoast.showToast(msg: "Login successful");
         // Check registration status and navigate accordingly
-        await _navigateAfterLogin(userCredential.user!);
+        if (mounted) {
+          await _navigateAfterLogin(userCredential.user!);
+        }
       }
     } on FirebaseAuthException catch (e) {
       String message = "Login failed. Check email/password";
@@ -215,10 +251,53 @@ class _LoginScreenState extends State<LoginScreen> {
         case 'wrong-password':
           message = "Incorrect password";
           break;
+        case 'network-request-failed':
+          message = "Network error. Please check your connection";
+          break;
+        case 'too-many-requests':
+          message = "Too many attempts. Please try again later";
+          break;
+        case 'user-disabled':
+          message = "This account has been disabled";
+          break;
+        case 'operation-not-allowed':
+          message = "Email/password sign-in is not enabled";
+          break;
       }
+      
+      // Check if the error message indicates API is blocked
+      if (e.message != null && 
+          (e.message!.contains('blocked') || 
+           e.message!.contains('Identity Toolkit') ||
+           e.message!.contains('identitytoolkit'))) {
+        message = "Authentication service unavailable. Please contact support or try again later.";
+        print('⚠️ Firebase Auth API Error: ${e.message}');
+        print('💡 This usually means the Identity Toolkit API needs to be enabled in Google Cloud Console');
+      }
+      
       Fluttertoast.showToast(msg: message);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     } catch (e) {
-      Fluttertoast.showToast(msg: "An error occurred");
+      String errorMessage = "An error occurred";
+      
+      // Check for API blocked error in generic catch
+      if (e.toString().contains('blocked') || 
+          e.toString().contains('Identity Toolkit') ||
+          e.toString().contains('identitytoolkit')) {
+        errorMessage = "Authentication service unavailable. Please contact support.";
+        print('⚠️ Authentication API Error: $e');
+        print('💡 Enable Identity Toolkit API in Google Cloud Console:');
+        print('   https://console.cloud.google.com/apis/library/identitytoolkit.googleapis.com');
+      } else {
+        print('❌ Login error: $e');
+      }
+      
+      Fluttertoast.showToast(msg: errorMessage);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -257,7 +336,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "CALCULATE EVERY LOAD",
+                          "MULTI-LINGUAL LOGISTICS MANAGEMENT SYSTEM",
                           style: TextStyle(
                             fontSize: 14,
                             letterSpacing: 1.2,
@@ -392,31 +471,31 @@ class _LoginScreenState extends State<LoginScreen> {
                                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                             ),
                             const SizedBox(height: 20),
-                            // Google Sign-In Button (Commented Out)
-                            // ElevatedButton.icon(
-                            //   style: ElevatedButton.styleFrom(
-                            //     padding: const EdgeInsets.symmetric(
-                            //         vertical: 15, horizontal: 30),
-                            //     backgroundColor: Colors.white,
-                            //     foregroundColor: const Color(0xFF004d4d),
-                            //     shape: RoundedRectangleBorder(
-                            //       borderRadius: BorderRadius.circular(30),
-                            //     ),
-                            //   ),
-                            //   onPressed: isLoading ? null : _signInWithGoogle,
-                            //   icon: Image.asset(
-                            //     'assets/images/g.png',
-                            //     height: 20,
-                            //     width: 20,
-                            //     errorBuilder: (context, error, stackTrace) {
-                            //       return Icon(Icons.login, color: const Color(0xFF004d4d));
-                            //     },
-                            //   ),
-                            //   label: const Text(
-                            //     'Continue with Google',
-                            //     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            //   ),
-                            // ),
+                            // Google Sign-In Button
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 15, horizontal: 30),
+                                backgroundColor: Colors.white,
+                                foregroundColor: const Color(0xFF004d4d),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              onPressed: isLoading ? null : _signInWithGoogle,
+                              icon: Image.asset(
+                                'assets/images/g.png',
+                                height: 20,
+                                width: 20,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(Icons.login, color: const Color(0xFF004d4d));
+                                },
+                              ),
+                              label: const Text(
+                                'Continue with Google',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ),
                             const SizedBox(height: 20),
                             Text(
                               "Don't have an account?",
@@ -454,6 +533,4 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-extension on GoogleSignInAuthentication {
-  get accessToken => null;
-}
+

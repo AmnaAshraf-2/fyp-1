@@ -4,6 +4,12 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
+// Teal color palette
+const kTealDark = Color(0xFF004D4D);
+const kTeal = Color(0xFF007D7D);
+const kTealLight = Color(0xFFB2DFDB);
+const kTealBg = Color(0xFFE0F2F1);
+
 class EnterpriseDriverManagement extends StatefulWidget {
   const EnterpriseDriverManagement({super.key});
 
@@ -233,8 +239,35 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
 
       _loadDrivers();
     } catch (e) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('${t.error}: $e')),
+      );
+    }
+  }
+
+  Future<void> _toggleDriverStatus(String driverId, bool isActive) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final newStatus = isActive ? 'active' : 'inactive';
+      await _db.child('users/${user.uid}/drivers/$driverId').update({
+        'status': newStatus,
+        'statusUpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Driver status changed to ${newStatus}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      _loadDrivers();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating driver status: $e')),
       );
     }
   }
@@ -275,7 +308,7 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
         _loadDrivers();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${t.error}: $e')),
         );
       }
     }
@@ -286,22 +319,43 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
     final t = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(t.driverManagement, style: const TextStyle(color: Color(0xFF004d4d))),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF004d4d)),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1a1a1a), Color(0xFF2d2d2d)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
               children: [
                 // Header
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.orange.shade50,
+                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                  margin: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [kTeal, kTealDark],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(.1),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -312,7 +366,7 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
                             t.totalDrivers,
                             style: const TextStyle(
                               fontSize: 16,
-                              color: Color(0xFF004d4d),
+                              color: Colors.white,
                             ),
                           ),
                           Text(
@@ -320,7 +374,7 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF004d4d),
+                              color: Colors.white,
                             ),
                           ),
                         ],
@@ -330,7 +384,7 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
                         icon: const Icon(Icons.person_add),
                         label: Text(t.addDriver),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
+                          backgroundColor: Colors.orange.shade700,
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -348,22 +402,22 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
                               Icon(
                                 Icons.person,
                                 size: 64,
-                                color: Colors.grey[400],
+                                color: Colors.white.withOpacity(.5),
                               ),
                               const SizedBox(height: 16),
                               Text(
                                 t.noDriversFound,
                                 style: const TextStyle(
                                   fontSize: 18,
-                                  color: Color(0xFF004d4d),
+                                  color: Colors.white,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 t.addYourFirstDriver,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
-                                  color: Color(0xFF004d4d),
+                                  color: Colors.white.withOpacity(.8),
                                 ),
                               ),
                             ],
@@ -374,32 +428,62 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
                           itemCount: _drivers.length,
                           itemBuilder: (context, index) {
                             final driver = _drivers[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [kTeal, kTealDark],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(.1),
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  )
+                                ],
+                              ),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: Colors.orange.shade100,
+                                  backgroundColor: Colors.orange.shade700.withOpacity(.3),
                                   child: Icon(
                                     Icons.person,
-                                    color: Colors.orange,
+                                    color: Colors.white,
                                   ),
                                 ),
                                 title: Text(
                                   driver['name'] ?? 'Unknown',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF004d4d)),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                                 ),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('${t.phoneNumber}: ${driver['phone'] ?? 'N/A'}', style: const TextStyle(color: Color(0xFF004d4d))),
-                                    Text('${t.cnic}: ${driver['cnic'] ?? 'N/A'}', style: const TextStyle(color: Color(0xFF004d4d))),
-                                    Text('${t.licenseNumber}: ${driver['licenseNumber'] ?? 'N/A'}', style: const TextStyle(color: Color(0xFF004d4d))),
-                                    Text('${t.experienceYears}: ${driver['experienceYears'] ?? 0} years', style: const TextStyle(color: Color(0xFF004d4d))),
+                                    Text('${t.phoneNumber}: ${driver['phone'] ?? 'N/A'}', style: TextStyle(color: Colors.white.withOpacity(.9))),
+                                    Text('${t.cnic}: ${driver['cnic'] ?? 'N/A'}', style: TextStyle(color: Colors.white.withOpacity(.9))),
+                                    Text('${t.licenseNumber}: ${driver['licenseNumber'] ?? 'N/A'}', style: TextStyle(color: Colors.white.withOpacity(.9))),
+                                    Text('${t.experienceYears}: ${driver['experienceYears'] ?? 0} ${t.years}', style: TextStyle(color: Colors.white.withOpacity(.9))),
                                   ],
                                 ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    // Status Toggle Switch
+                                    Switch(
+                                      value: (driver['status'] ?? 'inactive') == 'active',
+                                      onChanged: (value) => _toggleDriverStatus(driver['id'], value),
+                                      activeColor: Colors.green,
+                                      inactiveThumbColor: Colors.red,
+                                      inactiveTrackColor: Colors.red.withOpacity(0.5),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // Status Badge
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
@@ -407,10 +491,11 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
-                                        driver['status'] ?? 'inactive',
+                                        driver['status'] == 'active' ? 'Active' : 'Inactive',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
@@ -428,6 +513,30 @@ class _EnterpriseDriverManagementState extends State<EnterpriseDriverManagement>
                 ),
               ],
             ),
+        ),
+      ),
+      appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1a1a1a), Color(0xFF2d2d2d)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          t.drivers,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
+      ),
     );
   }
 }

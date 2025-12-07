@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:logistics_app/main.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -46,8 +43,7 @@ class DrawerMenuItem {
 }
 
 class _BaseDrawerState extends State<BaseDrawer> {
-  String _userName = "Guest User";
-  String? _profileImageUrl;
+  String _userName = "";
 
   @override
   void initState() {
@@ -62,66 +58,31 @@ class _BaseDrawerState extends State<BaseDrawer> {
           await FirebaseDatabase.instance.ref("users/${user.uid}").get();
       if (snapshot.exists) {
         final data = snapshot.value as Map;
+        final loc = AppLocalizations.of(context);
         setState(() {
-          _userName = data['name'] ?? "Guest User";
-          _profileImageUrl = data['profilePic'] ?? data['profile_image'];
+          _userName = data['name'] ?? (loc?.guestUser ?? "Guest User");
         });
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString("userName", _userName);
-        if (_profileImageUrl != null) {
-          await prefs.setString("profilePic", _profileImageUrl!);
-        }
-      }
-    }
-  }
-
-  Future<void> _changeProfilePic() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      File imageFile = File(pickedFile.path);
-
-      try {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) return;
-
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child("profile_pics")
-            .child("${user.uid}.jpg");
-
-        await storageRef.putFile(imageFile);
-        String downloadUrl = await storageRef.getDownloadURL();
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('profile_image', downloadUrl);
-
-        await FirebaseDatabase.instance
-            .ref()
-            .child("users")
-            .child(user.uid)
-            .update({"profile_image": downloadUrl});
-
+      } else {
+        // If user doesn't exist in database, use guest user label
+        final loc = AppLocalizations.of(context);
         setState(() {
-          _profileImageUrl = downloadUrl;
+          _userName = loc?.guestUser ?? "Guest User";
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile picture updated")),
-        );
-      } catch (e) {
-        debugPrint("Error uploading profile pic: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed: $e")),
-        );
       }
     }
   }
 
   void _showLanguageDialog(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
     final prefs = await SharedPreferences.getInstance();
-    String initialLanguage = prefs.getString('languageCode') ?? 'en';
+    String initialLanguage = 'en';
+    if (user != null) {
+      initialLanguage = prefs.getString('languageCode_${user.uid}') ?? 'en';
+    } else {
+      initialLanguage = prefs.getString('languageCode') ?? 'en';
+    }
     
     showDialog(
       context: context,
@@ -132,12 +93,13 @@ class _BaseDrawerState extends State<BaseDrawer> {
             final currentLanguage = initialLanguage;
             
             return AlertDialog(
+              backgroundColor: Colors.white,
               title: Text(loc.selectLanguage),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
-                    title: Text(loc.english),
+                    title: Text(loc.english, style: const TextStyle(color: Color(0xFF004d4d))),
                     leading: Radio<String>(
                       value: 'en',
                       groupValue: currentLanguage,
@@ -147,7 +109,7 @@ class _BaseDrawerState extends State<BaseDrawer> {
                     ),
                   ),
                   ListTile(
-                    title: Text(loc.urdu),
+                    title: Text(loc.urdu, style: const TextStyle(color: Color(0xFF004d4d))),
                     leading: Radio<String>(
                       value: 'ur',
                       groupValue: currentLanguage,
@@ -157,7 +119,7 @@ class _BaseDrawerState extends State<BaseDrawer> {
                     ),
                   ),
                   ListTile(
-                    title: Text(loc.pashto),
+                    title: Text(loc.pashto, style: const TextStyle(color: Color(0xFF004d4d))),
                     leading: Radio<String>(
                       value: 'ps',
                       groupValue: currentLanguage,
@@ -176,8 +138,16 @@ class _BaseDrawerState extends State<BaseDrawer> {
   }
 
   Future<void> _changeLanguage(BuildContext context, String languageCode) async {
+    final user = FirebaseAuth.instance.currentUser;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('languageCode', languageCode);
+    
+    // Save language preference for the current user
+    if (user != null) {
+      await prefs.setString('languageCode_${user.uid}', languageCode);
+    } else {
+      // Fallback to global if no user (shouldn't happen, but just in case)
+      await prefs.setString('languageCode', languageCode);
+    }
     
     Locale newLocale = Locale(languageCode);
     MyApp.setLocale(context, newLocale);
@@ -187,9 +157,10 @@ class _BaseDrawerState extends State<BaseDrawer> {
 
   Future<void> _checkRoleRegistrationAndNavigate(String targetRole, BuildContext context) async {
     final user = FirebaseAuth.instance.currentUser;
+    final loc = AppLocalizations.of(context)!;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User not logged in")),
+        SnackBar(content: Text(loc.userNotLoggedIn)),
       );
       return;
     }
@@ -254,8 +225,9 @@ class _BaseDrawerState extends State<BaseDrawer> {
     } catch (e) {
       Navigator.pop(context); // Close loading if still open
       debugPrint("Error checking role registration: $e");
+      final loc = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error switching role: $e")),
+        SnackBar(content: Text(loc.errorSwitchingRole(e.toString()))),
       );
     }
   }
@@ -322,7 +294,9 @@ class _BaseDrawerState extends State<BaseDrawer> {
       builder: (context) {
         final loc = AppLocalizations.of(context)!;
         return AlertDialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
+            
             borderRadius: BorderRadius.circular(16),
           ),
           title: Text(loc.switchRole),
@@ -331,7 +305,7 @@ class _BaseDrawerState extends State<BaseDrawer> {
             children: [
               ListTile(
                 leading: const Icon(Icons.person, color: Colors.orange),
-                title: Text(loc.customer),
+                title: Text(loc.customer, style: const TextStyle(color: Color(0xFF004d4d))),
                 onTap: () {
                   Navigator.pop(context);
                   _checkRoleRegistrationAndNavigate('customer', context);
@@ -339,7 +313,7 @@ class _BaseDrawerState extends State<BaseDrawer> {
               ),
               ListTile(
                 leading: const Icon(Icons.local_shipping, color: Colors.blue),
-                title: Text(loc.driver),
+                title: Text(loc.driver, style: const TextStyle(color: Color(0xFF004d4d))),
                 onTap: () {
                   Navigator.pop(context);
                   _checkRoleRegistrationAndNavigate('driver', context);
@@ -347,7 +321,7 @@ class _BaseDrawerState extends State<BaseDrawer> {
               ),
               ListTile(
                 leading: const Icon(Icons.business, color: Colors.green),
-                title: Text(loc.enterprise),
+                title: Text(loc.enterprise, style: const TextStyle(color: Color(0xFF004d4d))),
                 onTap: () {
                   Navigator.pop(context);
                   _checkRoleRegistrationAndNavigate('enterprise', context);
@@ -365,16 +339,25 @@ class _BaseDrawerState extends State<BaseDrawer> {
     final loc = AppLocalizations.of(context)!;
     
     return Drawer(
+      backgroundColor: Colors.white,
       child: Column(
         children: [
-          // Enhanced Header
+          // 🔹 Teal Gradient Header with Curved Bottom
           Container(
-            height: 200,
+            width: double.infinity,
+            height: 210,
             decoration: BoxDecoration(
               gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF006A6A),
+                  const Color(0xFF008B8B),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [widget.headerColor1, widget.headerColor2],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
               ),
             ),
             child: SafeArea(
@@ -382,93 +365,22 @@ class _BaseDrawerState extends State<BaseDrawer> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 35,
-                              backgroundImage: _profileImageUrl != null
-                                  ? NetworkImage(_profileImageUrl!)
-                                  : null,
-                              backgroundColor: Colors.white,
-                              child: _profileImageUrl == null
-                                  ? Icon(
-                                      Icons.person,
-                                      size: 40,
-                                      color: widget.headerColor1,
-                                    )
-                                  : null,
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap: _changeProfilePic,
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                  ),
-                                  padding: const EdgeInsets.all(6),
-                                  child: Icon(
-                                    Icons.camera_alt,
-                                    size: 16,
-                                    color: widget.headerColor1,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _userName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                widget.roleLabel,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
+                    Text(
+                      _userName.isEmpty ? loc.guestUser : _userName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        color: Colors.white,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.star, color: Colors.yellow, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            loc.premiumMember,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.roleLabel,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
                       ),
                     ),
                   ],
@@ -477,7 +389,7 @@ class _BaseDrawerState extends State<BaseDrawer> {
             ),
           ),
 
-          // Menu items
+          // 🔹 Drawer Items List
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -494,7 +406,7 @@ class _BaseDrawerState extends State<BaseDrawer> {
                   loc.changeLanguage,
                   () => _showLanguageDialog(context),
                 ),
-                const Divider(),
+                const Divider(height: 28),
                 _buildDrawerItem(
                   Icons.swap_horiz,
                   loc.switchRole,
@@ -513,27 +425,20 @@ class _BaseDrawerState extends State<BaseDrawer> {
             ),
           ),
 
-          // Footer
+          // 🔹 Clean Footer
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.grey[100],
-              border: Border(
-                top: BorderSide(color: Colors.grey[300]!),
-              ),
+              border: Border(top: BorderSide(color: Colors.grey[300]!)),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.info, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Text(
-                  '${loc.version} 1.0.0',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF004d4d),
-                  ),
-                ),
-              ],
+            child: Text(
+              "Logistics App v1.0",
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -548,28 +453,38 @@ class _BaseDrawerState extends State<BaseDrawer> {
     bool isSelected = false,
     bool isLogout = false,
   }) {
+    final tealDark = const Color(0xFF004d4d);
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected ? widget.headerColor1.withOpacity(0.1) : null,
-        borderRadius: BorderRadius.circular(8),
+        color: isSelected ? Colors.teal.shade50 : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          if (isSelected)
+            BoxShadow(
+              color: Colors.teal.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+        ],
       ),
       child: ListTile(
         leading: Icon(
           icon,
-          color: isLogout ? Colors.red : (isSelected ? const Color(0xFF004d4d) : const Color(0xFF004d4d)),
+          color: isLogout ? Colors.red : tealDark,
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isLogout ? Colors.red : (isSelected ? const Color(0xFF004d4d) : const Color(0xFF004d4d)),
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isLogout ? Colors.red : tealDark,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
         onTap: onTap,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
+        splashColor: Colors.teal.shade100,
       ),
     );
   }
