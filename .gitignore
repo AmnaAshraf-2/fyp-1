@@ -14,7 +14,6 @@ node_modules/
 migrate_working_dir/
 
 # IntelliJ related
-*.iml
 *.ipr
 *.iws
 .idea/
@@ -28,11 +27,12 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.packages
+.pub/
+build/
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
-.pub/
-/build/
 
 # Symbolication related
 app.*.symbols
@@ -40,7 +40,25 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Android
+android/.gradle/
+android/app/.cxx/
+android/local.properties
+android/app/debug
+android/app/profile
+android/app/release
+
+# iOS / macOS
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Linux / Windows
+linux/flutter/generated_*
+windows/flutter/generated_*
+
+# Web
+web/generated_plugin_registrant.dart
+
+# IntelliJ / Android Studio
+*.iml
