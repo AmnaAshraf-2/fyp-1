@@ -5,6 +5,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logistics_app/screens/users/driver/upcoming_trips.dart';
 import 'package:logistics_app/screens/users/customer/route_map_view.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:logistics_app/services/schedule_conflict_service.dart';
 
 // Teal color palette
 const kTealDark = Color(0xFF004D4D);
@@ -22,6 +23,7 @@ class DriverNewOffersScreen extends StatefulWidget {
 class _DriverNewOffersScreenState extends State<DriverNewOffersScreen> {
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseDatabase.instance.ref();
+  final _conflictService = ScheduleConflictService();
 
   String? _driverId;
   bool _isLoading = true;
@@ -240,6 +242,26 @@ class _DriverNewOffersScreenState extends State<DriverNewOffersScreen> {
               continue;
             }
             
+            // Check for schedule conflicts
+            final pickupDate = data['pickupDate'] as String?;
+            final pickupTime = data['pickupTime'] as String?;
+            
+            if (pickupDate != null && pickupTime != null && 
+                pickupDate != 'N/A' && pickupTime != 'N/A') {
+              final hasConflict = await _conflictService.hasConflict(
+                _driverId!,
+                pickupDate,
+                pickupTime,
+              );
+              
+              if (hasConflict) {
+                print('🚫 DEBUG: Request $requestId conflicts with driver schedule, skipping');
+                // Don't remove from new_offers - just don't show it
+                // This way if the driver's schedule changes, it can reappear
+                continue;
+              }
+            }
+            
             print('🔍 DEBUG: Request data loaded: ${data['loadName']}');
             print('🎵 DEBUG: Audio note URL: ${data['audioNoteUrl']}');
             
@@ -384,6 +406,35 @@ class _DriverNewOffersScreenState extends State<DriverNewOffersScreen> {
 
     if (result != null) {
       try {
+        // Backend validation: Check for schedule conflicts
+        // Get request data to check pickup date/time
+        final requestSnapshot = await _db.child('requests/$requestId').get();
+        if (requestSnapshot.exists) {
+          final requestData = Map<String, dynamic>.from(requestSnapshot.value as Map);
+          final pickupDate = requestData['pickupDate'] as String?;
+          final pickupTime = requestData['pickupTime'] as String?;
+          
+          if (pickupDate != null && pickupTime != null && 
+              pickupDate != 'N/A' && pickupTime != 'N/A') {
+            final hasConflict = await _conflictService.hasConflict(
+              _driverId!,
+              pickupDate,
+              pickupTime,
+            );
+            
+            if (hasConflict) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('This request conflicts with your existing schedule. Please check your upcoming trips.'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+              return;
+            }
+          }
+        }
+
         // Get driver name from user profile
         String driverName = 'Driver';
         if (_driverId != null) {
@@ -432,6 +483,32 @@ class _DriverNewOffersScreenState extends State<DriverNewOffersScreen> {
     try {
       final requestId = offer['requestId'] as String?;
       if (requestId == null) return;
+
+      // Backend validation: Check for schedule conflicts
+      final pickupDate = offer['pickupDate'] as String?;
+      final pickupTime = offer['pickupTime'] as String?;
+      
+      if (pickupDate != null && pickupTime != null && 
+          pickupDate != 'N/A' && pickupTime != 'N/A') {
+        final hasConflict = await _conflictService.hasConflict(
+          _driverId!,
+          pickupDate,
+          pickupTime,
+        );
+        
+        if (hasConflict) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('This request conflicts with your existing schedule. Please check your upcoming trips.'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          // Reload offers to refresh the list
+          _loadOffers();
+          return;
+        }
+      }
 
       final originalFare = (offer['offerFare'] ?? 0).toDouble();
       

@@ -10,10 +10,14 @@ import 'package:logistics_app/splash/welcome.dart';
 import 'package:logistics_app/screens/users/driver/drivers.dart';
 import 'package:logistics_app/screens/users/customer/customerDashboard.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_dashboard.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:logistics_app/screens/users/enterprise_driver/enterprise_driver_password_setup.dart';
+import 'package:logistics_app/screens/users/enterprise_driver/enterprise_driver_dashboard.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logistics_app/main.dart';
 import 'package:logistics_app/services/location_permission_service.dart';
+import 'package:logistics_app/phn_auth.dart';
 
 // Import Google Sign-In with conditional import for web
 import 'package:google_sign_in/google_sign_in.dart'
@@ -35,21 +39,38 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _passwordVisible = false;
 
   Future<void> _navigateAfterLogin(User user) async {
+    if (!mounted) return;
+    
     try {
       // Load user-specific language preference
       final prefs = await SharedPreferences.getInstance();
       final userLanguageCode = prefs.getString('languageCode_${user.uid}') ?? 'en';
-      MyApp.setLocale(context, Locale(userLanguageCode));
+      if (mounted) {
+        MyApp.setLocale(context, Locale(userLanguageCode));
+      }
       
       final userSnapshot = await FirebaseDatabase.instance
           .ref('users/${user.uid}')
-          .get();
+          .get()
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              if (kDebugMode) {
+                print('⚠️ User data fetch timed out');
+              }
+              throw TimeoutException('User data fetch timeout');
+            },
+          );
+
+      if (!mounted) return;
 
       if (!userSnapshot.exists) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (c) => const WelcomeScreen()),
-        );
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (c) => const WelcomeScreen()),
+          );
+        }
         return;
       }
 
@@ -65,20 +86,30 @@ class _LoginScreenState extends State<LoginScreen> {
           final vehicleInfo = userData['vehicleInfo'];
           final isProfileComplete = userData['isProfileComplete'] ?? false;
           
-          // If registration is complete, request location permission then go to dashboard
+          // If registration is complete, navigate first, then request location permission in background
           if (driverDetails != null && 
               vehicleInfo != null && 
               isProfileComplete == true) {
-            // Request location permission for drivers (needed to show nearby customers)
-            if (mounted && !kIsWeb) {
-              final locationService = LocationPermissionService();
-              await locationService.requestLocationPermission(context);
-            }
             if (mounted) {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (c) => const DriversScreen()),
               );
+              // Request location permission in background (non-blocking)
+              // Use a small delay to ensure navigation completes first
+              if (!kIsWeb && mounted) {
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (mounted) {
+                    final locationService = LocationPermissionService();
+                    locationService.requestLocationPermission(context).catchError((e) {
+                      // Silently handle permission errors
+                      if (kDebugMode) {
+                        print('Location permission request failed: $e');
+                      }
+                    });
+                  }
+                });
+              }
             }
             return;
           }
@@ -97,38 +128,97 @@ class _LoginScreenState extends State<LoginScreen> {
           final isProfileComplete = userData['isProfileComplete'] ?? false;
           
           if (enterpriseDetails != null && isProfileComplete == true) {
-            // Request location permission for enterprises (needed to show nearby customers)
-            if (mounted && !kIsWeb) {
-              final locationService = LocationPermissionService();
-              await locationService.requestLocationPermission(context);
-            }
             if (mounted) {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (c) => const EnterpriseDashboard()),
               );
+              // Request location permission in background (non-blocking)
+              // Use a small delay to ensure navigation completes first
+              if (!kIsWeb && mounted) {
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (mounted) {
+                    final locationService = LocationPermissionService();
+                    locationService.requestLocationPermission(context).catchError((e) {
+                      // Silently handle permission errors
+                      if (kDebugMode) {
+                        print('Location permission request failed: $e');
+                      }
+                    });
+                  }
+                });
+              }
             }
             return;
           }
           shouldShowWelcome = true;
           break;
+        case 'enterprise_driver':
+          final needsPasswordSetup = userData['needsPasswordSetup'] ?? false;
+          final isProfileComplete = userData['isProfileComplete'] ?? false;
+          
+          // If password setup is needed, redirect to password setup screen
+          if (needsPasswordSetup || !isProfileComplete) {
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (c) => EnterpriseDriverPasswordSetup(
+                    email: user.email ?? '',
+                  ),
+                ),
+              );
+            }
+            return;
+          }
+          
+          // Password is set, go to enterprise driver dashboard
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (c) => const EnterpriseDriverDashboard()),
+            );
+            // Request location permission in background (non-blocking)
+            // Use a small delay to ensure navigation completes first
+            if (!kIsWeb && mounted) {
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted) {
+                  final locationService = LocationPermissionService();
+                  locationService.requestLocationPermission(context).catchError((e) {
+                    // Silently handle permission errors
+                    if (kDebugMode) {
+                      print('Location permission request failed: $e');
+                    }
+                  });
+                }
+              });
+            }
+          }
+          return;
         default:
           shouldShowWelcome = true;
       }
 
       // If registration incomplete or unknown role, show welcome screen
-      if (shouldShowWelcome) {
+      if (shouldShowWelcome && mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (c) => const WelcomeScreen()),
         );
       }
     } catch (e) {
+      print('❌ Error in _navigateAfterLogin: $e');
       // On error, show welcome screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (c) => const WelcomeScreen()),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (c) => const WelcomeScreen()),
+        );
+      }
+      // Make sure loading state is reset on error
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -169,7 +259,16 @@ class _LoginScreenState extends State<LoginScreen> {
       // Check if user exists in realtime db
       final userSnapshot = await FirebaseDatabase.instance
           .ref("users/${userCredential.user!.uid}")
-          .get();
+          .get()
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              if (kDebugMode) {
+                print('⚠️ User data fetch timed out during Google sign-in');
+              }
+              throw TimeoutException('User data fetch timeout');
+            },
+          );
 
       if (!userSnapshot.exists) {
         // Not registered → log them out and redirect
@@ -219,28 +318,211 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (isLoading) return; // Prevent multiple simultaneous login attempts
 
     setState(() => isLoading = true);
 
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    // First, check if this is a pending enterprise driver (before trying to login)
+    // Make this check non-blocking with timeout to prevent login from hanging
+    // If this check fails or times out, we'll proceed with normal login
+    Map<String, dynamic>? driverData;
+    String? driverId;
+    
+    // Try to check for pending drivers, but don't let it block login
+    try {
+      DataSnapshot? pendingSnapshot;
+      
+      // Try orderByChild query with timeout (requires index)
+      try {
+        pendingSnapshot = await FirebaseDatabase.instance
+            .ref('enterprise_drivers_pending')
+            .orderByChild('email')
+            .equalTo(email)
+            .limitToFirst(1)
+            .get()
+            .timeout(
+              const Duration(seconds: 5),
+              onTimeout: () {
+                if (kDebugMode) {
+                  print('⚠️ Pending drivers query timed out, trying fallback');
+                }
+                throw TimeoutException('Query timeout');
+              },
+            );
+      } catch (e) {
+        // If orderByChild fails (no index or timeout), try loading all and filtering
+        if (kDebugMode) {
+          print('⚠️ orderByChild query failed: $e, trying fallback method');
+        }
+        try {
+          final allPendingSnapshot = await FirebaseDatabase.instance
+              .ref('enterprise_drivers_pending')
+              .get()
+              .timeout(const Duration(seconds: 5));
+          
+          if (allPendingSnapshot.exists) {
+            final allPending = allPendingSnapshot.value as Map?;
+            if (allPending != null) {
+              // Find matching driver by email
+              for (var entry in allPending.entries) {
+                final data = entry.value as Map?;
+                if (data?['email'] == email && data?['needsAuthAccount'] == true) {
+                  driverId = entry.key;
+                  driverData = Map<String, dynamic>.from(data!);
+                  break;
+                }
+              }
+            }
+          }
+        } catch (e2) {
+          if (kDebugMode) {
+            print('⚠️ Fallback query also failed: $e2, continuing with normal login');
+          }
+          // Continue with normal login if both queries fail
+        }
+      }
+      
+      // If orderByChild query succeeded, extract data from snapshot
+      if (pendingSnapshot != null && pendingSnapshot.exists && pendingSnapshot.children.isNotEmpty) {
+        // Get the first matching driver
+        final pendingDriver = pendingSnapshot.children.first;
+        driverId = pendingDriver.key;
+        final data = Map<String, dynamic>.from(pendingDriver.value as Map);
+        
+        if (data['needsAuthAccount'] == true) {
+          driverData = data;
+        }
+      }
+      
+      // Process pending driver if found
+      if (driverId != null && driverData != null) {
+        // This is a pending enterprise driver - create their account
+        final tempPassword = 'TempPass${DateTime.now().millisecondsSinceEpoch}';
+        final userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+          email: email,
+          password: tempPassword,
+        );
+        
+        final driverAuthUid = userCredential.user?.uid;
+        
+        // Batch database operations for better performance
+        final batch = <Future>[];
+        
+        // Move data from pending to main users table
+        batch.add(FirebaseDatabase.instance.ref('users/$driverAuthUid').set({
+          'uid': driverAuthUid,
+          'email': driverData['email'],
+          'name': driverData['name'],
+          'phone': driverData['phone'],
+          'role': 'enterprise_driver',
+          'enterpriseId': driverData['enterpriseId'],
+          'enterpriseDriverId': driverData['enterpriseDriverId'],
+          'createdAt': driverData['createdAt'],
+          'isProfileComplete': false,
+          'needsPasswordSetup': true,
+        }));
+        
+        // Update driver record in enterprise's drivers list
+        batch.add(FirebaseDatabase.instance
+            .ref('users/${driverData['enterpriseId']}/drivers/${driverData['enterpriseDriverId']}')
+            .update({'authUid': driverAuthUid, 'authAccountCreated': true}));
+        
+        // Remove from pending
+        batch.add(FirebaseDatabase.instance
+            .ref('enterprise_drivers_pending/$driverId')
+            .remove());
+        
+        // Execute all operations in parallel
+        await Future.wait(batch);
+        
+        // Send password reset email (non-blocking)
+        FirebaseAuth.instance.sendPasswordResetEmail(email: email).catchError((e) {
+          if (kDebugMode) {
+            print('Password reset email failed: $e');
+          }
+        });
+        
+        // Sign in with the temporary password so they can set their own password
+        final loginCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+          email: email,
+          password: tempPassword,
+        );
+        
+        // Now navigate to password setup screen
+        if (mounted) {
+          Fluttertoast.showToast(
+            msg: "Account created. Please set your password.",
+            toastLength: Toast.LENGTH_SHORT,
+          );
+          try {
+            await _navigateAfterLogin(loginCredential.user!);
+          } catch (e) {
+            print('❌ Error navigating after pending driver login: $e');
+            if (mounted) {
+              setState(() => isLoading = false);
+            }
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      // If checking pending drivers fails, continue with normal login flow
+      if (kDebugMode) {
+        print('⚠️ Error checking pending enterprise drivers: $e');
+        print('💡 Continuing with normal login flow');
+      }
+      // Reset driverData to ensure normal login proceeds
+      driverData = null;
+      driverId = null;
+    }
+
+    // Normal login flow
     try {
       final userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+        email: email,
+        password: password,
       );
 
       if (userCredential.user != null) {
-        if (mounted) {
-          setState(() => isLoading = false);
-        }
         Fluttertoast.showToast(msg: "Login successful");
         // Check registration status and navigate accordingly
         if (mounted) {
-          await _navigateAfterLogin(userCredential.user!);
+          try {
+            await _navigateAfterLogin(userCredential.user!);
+          } catch (e) {
+            print('❌ Error during navigation after login: $e');
+            if (mounted) {
+              setState(() => isLoading = false);
+              Fluttertoast.showToast(msg: "Login successful but navigation failed. Please try again.");
+            }
+          }
+        } else {
+          if (mounted) {
+            setState(() => isLoading = false);
+          }
         }
+      } else {
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+      }
+    } on TimeoutException catch (e) {
+      if (kDebugMode) {
+        print('❌ Login timeout: $e');
+      }
+      Fluttertoast.showToast(msg: "Login timed out. Please check your connection and try again.");
+      if (mounted) {
+        setState(() => isLoading = false);
       }
     } on FirebaseAuthException catch (e) {
       String message = "Login failed. Check email/password";
+      
       switch (e.code) {
         case 'invalid-email':
           message = "Invalid email format";
@@ -298,6 +580,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() => isLoading = false);
       }
+    } finally {
+      // Ensure loading state is always reset, even if something unexpected happens
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -306,57 +593,59 @@ class _LoginScreenState extends State<LoginScreen> {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/p.jpg'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.4), // Dark overlay for better visibility
-            ),
-            child: Column(
-              children: [
-                // Top section with LAARI branding
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "LAARI",
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "MULTI-LINGUAL LOGISTICS MANAGEMENT SYSTEM",
-                          style: TextStyle(
-                            fontSize: 14,
-                            letterSpacing: 1.2,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/p.jpg'),
+                  fit: BoxFit.cover,
                 ),
-                // Bottom section with form
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  child: SingleChildScrollView(
-                    child: IgnorePointer(
-                      ignoring: isLoading,
-                      child: Form(
-                        key: _formKey,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.4), // Dark overlay for better visibility
+                ),
+                child: Column(
+                  children: [
+                    // Top section with LAARI branding
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.3,
+                      child: Center(
                         child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            Text(
+                              "LAARI",
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "MULTI-LINGUAL LOGISTICS MANAGEMENT SYSTEM",
+                              style: TextStyle(
+                                fontSize: 14,
+                                letterSpacing: 1.2,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Bottom section with form
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      child: IgnorePointer(
+                        ignoring: isLoading,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
                             TextFormField(
                               controller: emailController,
                               style: TextStyle(color: const Color(0xFF004d4d)),
@@ -459,10 +748,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                               ),
-                              onPressed: () async {
-                                setState(() => isLoading = true);
+                              onPressed: isLoading ? null : () async {
                                 await _submit();
-                                setState(() => isLoading = false);
                               },
                               child: isLoading
                                   ? const CircularProgressIndicator(
@@ -496,6 +783,32 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                             ),
+                            const SizedBox(height: 15),
+                            // Phone Authentication Button
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 15, horizontal: 30),
+                                backgroundColor: Colors.orange.shade700,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              onPressed: isLoading ? null : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const PhoneAuthScreen(isLogin: true),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.phone),
+                              label: const Text(
+                                'Continue with Phone',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ),
                             const SizedBox(height: 20),
                             Text(
                               "Don't have an account?",
@@ -522,9 +835,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

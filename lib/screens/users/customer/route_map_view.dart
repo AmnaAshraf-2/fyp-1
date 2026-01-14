@@ -499,7 +499,7 @@ class _RouteMapViewState extends State<RouteMapView> {
                     GoogleMap(
                       key: const Key('route_map'),
                       initialCameraPosition: CameraPosition(
-                        target: _pickupLatLng ?? const LatLng(33.6844, 73.0479),
+                        target: _pickupLatLng ?? const LatLng(31.5204, 74.3587),
                         zoom: 12.0,
                       ),
                       markers: _getLocalizedMarkers(),

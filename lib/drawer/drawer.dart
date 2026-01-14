@@ -328,9 +328,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 _buildDrawerItem(
                   Icons.settings,
                   loc.settings,
-                  () => ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(loc.settingsComingSoon)),
-                  ),
+                  () => Navigator.pushNamed(context, '/notification-preferences'),
                 ),
                 _buildDrawerItem(
                   Icons.help_outline,

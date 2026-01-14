@@ -8,6 +8,8 @@ import 'package:logistics_app/screens/users/driver/driver_registration.dart';
 import 'package:logistics_app/screens/users/driver/vehicle_info_page.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_details.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_dashboard.dart';
+import 'package:logistics_app/screens/users/enterprise_driver/enterprise_driver_dashboard.dart';
+import 'package:logistics_app/screens/users/enterprise_driver/enterprise_driver_password_setup.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:logistics_app/services/location_permission_service.dart';
@@ -116,6 +118,24 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           screen = const EnterpriseDashboard();
         } else {
           screen = const EnterpriseDetailsScreen();
+        }
+        break;
+      case 'enterprise_driver':
+        // Check if password setup is needed
+        final needsPasswordSetup = userData['needsPasswordSetup'] ?? false;
+        final isProfileComplete = userData['isProfileComplete'] ?? false;
+        
+        if (needsPasswordSetup || !isProfileComplete) {
+          screen = EnterpriseDriverPasswordSetup(
+            email: userData['email']?.toString() ?? '',
+          );
+        } else {
+          // Request location permission for enterprise drivers
+          if (mounted && !kIsWeb) {
+            final locationService = LocationPermissionService();
+            await locationService.requestLocationPermission(context);
+          }
+          screen = const EnterpriseDriverDashboard();
         }
         break;
       default:

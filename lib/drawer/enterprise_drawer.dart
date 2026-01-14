@@ -7,6 +7,7 @@ import 'package:logistics_app/screens/users/enterprise/enterprise_new_offers.dar
 import 'package:logistics_app/screens/users/enterprise/enterprise_bookings.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_past_bookings.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_profile.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise_earnings.dart';
 
 class EnterpriseDrawer extends StatelessWidget {
   const EnterpriseDrawer({super.key});
@@ -47,6 +48,14 @@ class EnterpriseDrawer extends StatelessWidget {
         ),
       ),
       DrawerMenuItem(
+        icon: Icons.account_balance_wallet,
+        title: 'Earnings',
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const EnterpriseEarningsScreen()),
+        ),
+      ),
+      DrawerMenuItem(
         icon: Icons.local_shipping,
         title: loc.vehicleManagement,
         onTap: () => Navigator.push(
@@ -73,9 +82,7 @@ class EnterpriseDrawer extends StatelessWidget {
       DrawerMenuItem(
         icon: Icons.settings,
         title: loc.settings,
-        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(loc.settingsComingSoon)),
-        ),
+        onTap: () => Navigator.pushNamed(context, '/notification-preferences'),
       ),
       DrawerMenuItem(
         icon: Icons.help_outline,

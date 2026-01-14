@@ -16,6 +16,8 @@ import 'package:logistics_app/screens/users/enterprise/enterprise_details.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_dashboard.dart';
 import 'package:logistics_app/screens/users/enterprise/enterprise_new_offers.dart';
 import 'package:logistics_app/screens/users/enterprise/shareholder_details.dart';
+import 'package:logistics_app/screens/users/enterprise_driver/enterprise_driver_dashboard.dart';
+import 'package:logistics_app/screens/users/enterprise_driver/enterprise_driver_password_setup.dart';
 import 'package:logistics_app/splash/splashscreen.dart';
 import 'package:logistics_app/splash/welcome.dart';
 import 'package:logistics_app/widgets/themes.dart';
@@ -28,6 +30,7 @@ import 'package:logistics_app/screens/users/customer/customer_live_trip.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logistics_app/services/initialize_vehicles.dart';
 import 'package:logistics_app/widgets/rating_notification_handler.dart' show RatingNotificationHandler, ratingNavigatorKey;
+import 'package:logistics_app/screens/notification_preferences_screen.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 // Global locale notifier instance
@@ -155,7 +158,7 @@ class MyApp extends StatelessWidget {
           home: const Splashscreen(),
           routes: {
         //communication
-        
+        '/splashscreen': (context) => const Splashscreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/Password': (context) => const ForgotPasswordScreen(),
@@ -163,6 +166,7 @@ class MyApp extends StatelessWidget {
         '/customerDashboard': (context) => const CustomerDashboard(),
         '/driverDashboard': (context) => const DriversScreen(),
         '/enterpriseDashboard': (context) => const EnterpriseDashboard(),
+        '/enterpriseDriverDashboard': (context) => const EnterpriseDriverDashboard(),
         '/newBookings': (context) => const NewBookingsScreen(),
         '/upcomingBookings': (context) => const UpcomingBookingsScreen(),
         '/pastBookings': (context) => const PastBookingsScreen(),
@@ -198,6 +202,8 @@ class MyApp extends StatelessWidget {
         '/enterprise-details': (context) => const EnterpriseDetailsScreen(),
         '/enterprise-new-offers': (context) =>
             const EnterpriseNewOffersScreen(),
+        '/notification-preferences': (context) =>
+            const NotificationPreferencesScreen(),
         //'/enterprise-profile': (context) => const EnterpriseProfileScreen(),
           },
         );

@@ -29,6 +29,8 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
   List<VehicleModel> _vehicleTypes = [];
   bool _isLoadingVehicleTypes = true;
   String _languageCode = 'en';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -38,12 +40,37 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
     _loadLanguageCode();
     // Listen to locale changes
     localeNotifier?.addListener(_onLocaleChanged);
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     localeNotifier?.removeListener(_onLocaleChanged);
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase();
+    });
+  }
+
+  List<Map<String, dynamic>> get _filteredVehicles {
+    if (_searchQuery.isEmpty) {
+      return _vehicles;
+    }
+    return _vehicles.where((vehicle) {
+      final makeModel = (vehicle['makeModel'] ?? '').toString().toLowerCase();
+      final registrationNumber = (vehicle['registrationNumber'] ?? '').toString().toLowerCase();
+      final type = (vehicle['type'] ?? '').toString().toLowerCase();
+      final color = (vehicle['color'] ?? '').toString().toLowerCase();
+      return makeModel.contains(_searchQuery) ||
+          registrationNumber.contains(_searchQuery) ||
+          type.contains(_searchQuery) ||
+          color.contains(_searchQuery);
+    }).toList();
   }
 
   void _onLocaleChanged() {
@@ -128,56 +155,139 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(t.addVehicle),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            t.addVehicle,
+            style: const TextStyle(
+              color: kTealDark,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: makeModelController,
+                  style: const TextStyle(color: kTealDark),
                   decoration: InputDecoration(
                     labelText: t.makeModel,
-                    border: const OutlineInputBorder(),
+                    labelStyle: const TextStyle(color: kTealDark),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark, width: 2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: registrationController,
+                  style: const TextStyle(color: kTealDark),
                   decoration: InputDecoration(
                     labelText: t.registrationNumber,
-                    border: const OutlineInputBorder(),
+                    labelStyle: const TextStyle(color: kTealDark),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark, width: 2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: colorController,
+                  style: const TextStyle(color: kTealDark),
                   decoration: InputDecoration(
                     labelText: t.color,
-                    border: const OutlineInputBorder(),
+                    labelStyle: const TextStyle(color: kTealDark),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark, width: 2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: capacityController,
                   keyboardType: TextInputType.number,
+                  style: const TextStyle(color: kTealDark),
                   decoration: InputDecoration(
                     labelText: t.capacity,
-                    border: const OutlineInputBorder(),
+                    labelStyle: const TextStyle(color: kTealDark),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark, width: 2),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: selectedType,
+                  dropdownColor: Colors.white,
+                  style: const TextStyle(color: kTealDark),
                   decoration: InputDecoration(
                     labelText: t.vehicleType,
-                    border: const OutlineInputBorder(),
+                    labelStyle: const TextStyle(color: kTealDark),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: kTealDark, width: 2),
+                    ),
                   ),
                   items: _isLoadingVehicleTypes
-                      ? [const DropdownMenuItem<String>(value: null, child: Text('Loading...'))]
+                      ? [DropdownMenuItem<String>(
+                          value: null, 
+                          child: Text(t.loading, style: const TextStyle(color: kTealDark)),
+                        )]
                       : _vehicleTypes
                           .map((v) => DropdownMenuItem<String>(
                                 value: v.getName(languageCode),
-                                child: Text("${v.getName(languageCode)} (${v.getCapacity(languageCode)})"),
+                                child: Text(
+                                  "${v.getName(languageCode)} (${v.getCapacity(languageCode)})",
+                                  style: const TextStyle(color: kTealDark),
+                                ),
                               ))
                           .toList(),
                   onChanged: (String? newValue) {
@@ -192,6 +302,9 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(
+                foregroundColor: kTealDark,
+              ),
               child: Text(t.cancel),
             ),
             ElevatedButton(
@@ -204,6 +317,10 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                   Navigator.pop(context, true);
                 }
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kTealDark,
+                foregroundColor: Colors.white,
+              ),
               child: Text(t.add),
             ),
           ],
@@ -217,7 +334,7 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
         'registrationNumber': registrationController.text,
         'color': colorController.text,
         'capacity': capacityController.text,
-        'type': selectedType ?? 'Unknown',
+        'type': selectedType ?? t.unknown,
         'addedAt': DateTime.now().millisecondsSinceEpoch,
         'status': 'active', // Default to active when adding
       });
@@ -250,25 +367,58 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
       final user = _auth.currentUser;
       if (user == null) return;
 
-      final newStatus = isActive ? 'active' : 'inactive';
+      final t = AppLocalizations.of(context)!;
+      final newStatus = isActive ? t.active : t.inactive;
+      final statusValue = isActive ? 'active' : 'inactive';
       await _db.child('users/${user.uid}/vehicles/$vehicleId').update({
-        'status': newStatus,
+        'status': statusValue,
         'statusUpdatedAt': DateTime.now().millisecondsSinceEpoch,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Vehicle status changed to ${newStatus}'),
+          content: Text(t.vehicleStatusChangedTo(newStatus)),
           duration: const Duration(seconds: 2),
         ),
       );
 
       _loadVehicles();
     } catch (e) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating vehicle status: $e')),
+        SnackBar(content: Text('${t.errorUpdatingVehicleStatus} $e')),
       );
     }
+  }
+
+  Widget _buildVehicleDetailRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: Colors.white.withOpacity(0.8)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 13,
+              ),
+              children: [
+                TextSpan(
+                  text: '$label ',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                TextSpan(
+                  text: value,
+                  style: const TextStyle(fontWeight: FontWeight.normal),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _deleteVehicle(String vehicleId) async {
@@ -391,21 +541,53 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                   ),
                 ),
 
+                // Search Bar
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: t.searchVehiclesBy,
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                      border: InputBorder.none,
+                      icon: Icon(Icons.search, color: Colors.white.withOpacity(0.8)),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear, color: Colors.white.withOpacity(0.8)),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+
                 // Vehicles List
                 Expanded(
-                  child: _vehicles.isEmpty
+                  child: _filteredVehicles.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                Icons.local_shipping,
+                                _searchQuery.isNotEmpty ? Icons.search_off : Icons.local_shipping,
                                 size: 64,
-                                color: Colors.grey[400],
+                                color: Colors.white.withOpacity(.5),
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                t.noVehiclesFound,
+                                _searchQuery.isNotEmpty ? t.noVehiclesFoundForSearch : t.noVehiclesFound,
                                 style: const TextStyle(
                                   fontSize: 18,
                                   color: Colors.white,
@@ -413,7 +595,9 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                t.addYourFirstVehicle,
+                                _searchQuery.isNotEmpty
+                                    ? t.tryDifferentSearchTerm
+                                    : t.addYourFirstVehicle,
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.white.withOpacity(.8),
@@ -423,20 +607,20 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _vehicles.length,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          itemCount: _filteredVehicles.length,
                           itemBuilder: (context, index) {
-                            final vehicle = _vehicles[index];
+                            final vehicle = _filteredVehicles[index];
                             return Container(
-                              margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
-                              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
                                   colors: [kTeal, kTealDark],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: Colors.white.withOpacity(.1),
                                   width: 1,
@@ -449,61 +633,92 @@ class _EnterpriseVehicleManagementState extends State<EnterpriseVehicleManagemen
                                   )
                                 ],
                               ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.green.shade700.withOpacity(.3),
-                                  child: Icon(
-                                    Icons.local_shipping,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                title: Text(
-                                  vehicle['makeModel'] ?? 'Unknown',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('${t.registrationNumber}: ${vehicle['registrationNumber'] ?? 'N/A'}', style: TextStyle(color: Colors.white.withOpacity(.9))),
-                                    Text('${t.type}: ${vehicle['type'] ?? 'N/A'}', style: TextStyle(color: Colors.white.withOpacity(.9))),
-                                    Text('${t.capacity}: ${vehicle['capacity'] ?? 'N/A'} kg', style: TextStyle(color: Colors.white.withOpacity(.9))),
-                                  ],
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Status Toggle Switch
-                                    Switch(
-                                      value: (vehicle['status'] ?? 'inactive') == 'active',
-                                      onChanged: (value) => _toggleVehicleStatus(vehicle['id'], value),
-                                      activeColor: Colors.green,
-                                      inactiveThumbColor: Colors.red,
-                                      inactiveTrackColor: Colors.red.withOpacity(0.5),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // Status Badge
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: vehicle['status'] == 'active' ? Colors.green : Colors.red,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        vehicle['status'] == 'active' ? 'Active' : 'Inactive',
-                                        style: const TextStyle(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Header Row with Icon, Name, and Actions
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: Colors.green.shade700.withOpacity(.3),
+                                        child: const Icon(
+                                          Icons.local_shipping,
                                           color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
+                                          size: 24,
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () => _deleteVehicle(vehicle['id']),
-                                    ),
-                                  ],
-                                ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              vehicle['makeModel'] ?? t.unknown,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: vehicle['status'] == 'active' 
+                                                    ? Colors.green.withOpacity(0.3)
+                                                    : Colors.red.withOpacity(0.3),
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: vehicle['status'] == 'active' ? Colors.green : Colors.red,
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                vehicle['status'] == 'active' ? t.active : t.inactive,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Status Toggle and Delete Button
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Switch(
+                                            value: (vehicle['status'] ?? 'inactive') == 'active',
+                                            onChanged: (value) => _toggleVehicleStatus(vehicle['id'], value),
+                                            activeColor: Colors.green,
+                                            inactiveThumbColor: Colors.red,
+                                            inactiveTrackColor: Colors.red.withOpacity(0.5),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                            onPressed: () => _deleteVehicle(vehicle['id']),
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Divider(color: Colors.white24, height: 1),
+                                  const SizedBox(height: 12),
+                                  // Vehicle Details
+                                  _buildVehicleDetailRow(Icons.confirmation_number, '${t.registrationNumber}:', vehicle['registrationNumber'] ?? t.nA),
+                                  const SizedBox(height: 8),
+                                  _buildVehicleDetailRow(Icons.category, '${t.type}:', vehicle['type'] ?? t.nA),
+                                  const SizedBox(height: 8),
+                                  _buildVehicleDetailRow(Icons.scale, '${t.capacity}:', '${vehicle['capacity'] ?? t.nA} kg'),
+                                ],
                               ),
                             );
                           },

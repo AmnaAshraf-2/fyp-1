@@ -107,18 +107,18 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
             await launchUrl(uri);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Cannot make call to $phone')),
+              SnackBar(content: Text(AppLocalizations.of(context)!.cannotMakeCall(phone))),
             );
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Enterprise contact number not available')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.enterpriseContactNotAvailable)),
           );
         }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error contacting enterprise: $e')),
+        SnackBar(content: Text('${AppLocalizations.of(context)!.errorContactingEnterprise}: $e')),
       );
     }
   }
@@ -164,14 +164,14 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
             await _db.child('driver_notifications/$driverId').push().set({
               'type': 'request_cancelled',
               'requestId': requestId,
-              'message': 'Customer cancelled the request',
+              'message': t.customerCancelledRequest,
               'timestamp': DateTime.now().millisecondsSinceEpoch,
             });
           }
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error cancelling request: $e')),
+          SnackBar(content: Text('${AppLocalizations.of(context)!.errorCancellingRequest}: $e')),
         );
       }
     }
@@ -193,6 +193,62 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
     );
   }
 
+  // Helper widget for status badge (small, clean)
+  Widget _statusBadge(String status, AppLocalizations t) {
+    Color color;
+    String text;
+    switch (status) {
+      case 'accepted':
+        color = Colors.orange;
+        text = t.statusAccepted;
+        break;
+      case 'dispatched':
+        color = Colors.blue;
+        text = t.statusDispatched;
+        break;
+      default:
+        color = Colors.green;
+        text = t.statusInProgress;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  // Helper widget for info row (neutral)
+  Widget _Row(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
@@ -210,9 +266,12 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFF004d4d)),
+                  CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Color(0xFF004d4d),
+                  ),
                   SizedBox(height: 10),
-                  Text("Loading...", style: TextStyle(color: Color(0xFF004d4d))),
+                  Text(t.loading, style: TextStyle(color: Color(0xFF004d4d))),
                 ],
               ),
             )
@@ -221,7 +280,7 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.event_busy, size: 70, color: Colors.grey.shade400),
+                      Icon(Icons.local_shipping_outlined, size: 80, color: Colors.grey.shade400),
                       SizedBox(height: 10),
                       Text(t.noUpcomingBookings,
                           style: TextStyle(fontSize: 18, color: Color(0xFF004d4d))),
@@ -235,144 +294,86 @@ class _UpcomingBookingsScreenState extends State<UpcomingBookingsScreen> {
                     final b = _upcomingBookings[i];
 
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
-                          )
-                        ],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  b['loadName'] ?? 'N/A',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF004d4d),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header Row (Clean & Balanced)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  b['loadName'] ?? t.nA,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
                                   ),
                                 ),
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: b['status'] == 'accepted' 
-                                        ? Colors.orange 
-                                        : b['status'] == 'dispatched'
-                                            ? Colors.blue
-                                            : Colors.green,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    b['status'] == 'accepted' 
-                                        ? 'Accepted' 
-                                        : b['status'] == 'dispatched'
-                                            ? 'Dispatched'
-                                            : 'In Progress',
-                                    style: TextStyle(color: Colors.white, fontSize: 12),
-                                  ),
-                                )
-                              ],
-                            ),
+                              ),
+                              _statusBadge(b['status'], t),
+                            ],
+                          ),
 
-                            SizedBox(height: 8),
-                            Text('${b['loadType']} • ${b['weight']} ${b['weightUnit']}',
-                                style: TextStyle(color: Color(0xFF004d4d))),
+                          // Compact Tile Info (NO TEAL)
+                          const SizedBox(height: 8),
+                          _Row(Icons.inventory_2_outlined,
+                              '${b['loadType']} • ${b['weight']} ${b['weightUnit']}'),
+                          _Row(Icons.access_time_outlined,
+                              '${t.pickupLabel}: ${b['pickupTime'] ?? t.nA}'),
+                          _Row(Icons.currency_rupee,
+                              '${t.fareLabel}: Rs ${b['finalFare'] ?? b['offerFare']}'),
 
-                            SizedBox(height: 4),
-                            Text('Pickup: ${b['pickupTime'] ?? 'N/A'}',
-                                style: TextStyle(color: Color(0xFF004d4d))),
-
-                            SizedBox(height: 4),
-                            Text('Fare: Rs ${b['finalFare'] ?? b['offerFare']}',
-                                style: TextStyle(fontSize: 16, color: Colors.green.shade700)),
-
-                            SizedBox(height: 16),
-                            // Contact buttons row
-                            if (b['acceptedDriverId'] != null || b['acceptedEnterpriseId'] != null)
-                              Row(
-                                children: [
-                                  // Show call driver button if there's an accepted driver
-                                  if (b['acceptedDriverId'] != null)
-                                    Expanded(
-                                      child: ElevatedButton.icon(
-                                        icon: Icon(Icons.phone, size: 18),
-                                        label: Text(t.callDriver),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                        ),
-                                        onPressed: () => _callDriver(b['acceptedDriverId']),
-                                      ),
+                          // Action Buttons (Tile Style)
+                          const SizedBox(height: 12),
+                          if (b['acceptedDriverId'] != null || b['acceptedEnterpriseId'] != null)
+                            Row(
+                              children: [
+                                if (b['acceptedDriverId'] != null)
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      icon: const Icon(Icons.phone, size: 18),
+                                      label: Text(t.callDriver),
+                                      onPressed: () => _callDriver(b['acceptedDriverId']),
                                     ),
-                                  // Show contact enterprise button if there's an accepted enterprise
-                                  if (b['acceptedEnterpriseId'] != null) ...[
-                                    if (b['acceptedDriverId'] != null) SizedBox(width: 10),
+                                  ),
+                                if (b['acceptedEnterpriseId'] != null) ...[
+                                  const SizedBox(width: 10),
                                     Expanded(
-                                      child: ElevatedButton.icon(
-                                        icon: Icon(Icons.business, size: 18),
-                                        label: Text('Contact Enterprise'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                        ),
+                                      child: OutlinedButton.icon(
+                                        icon: const Icon(Icons.business, size: 18),
+                                        label: Text(t.contactEnterprise),
                                         onPressed: () => _callEnterprise(b['acceptedEnterpriseId']),
                                       ),
                                     ),
-                                  ],
                                 ],
-                              ),
-                            SizedBox(height: b['acceptedDriverId'] != null || b['acceptedEnterpriseId'] != null ? 10 : 0),
-                            // Cancel button row
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    icon: Icon(Icons.cancel, size: 18),
-                                    label: Text(t.cancelRequest),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: Colors.red,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    onPressed: () => _cancelRequest(b['requestId']),
-                                  ),
-                                ),
                               ],
                             ),
 
-                            // Only show find new driver for accepted status (not dispatched or in_progress)
-                            if (b['status'] == 'accepted') ...[
-                              SizedBox(height: 10),
-                              SizedBox(
-                                width: double.infinity,
-                                child: TextButton.icon(
-                                  icon: Icon(Icons.search, size: 18),
-                                  label: Text(t.findNewDriver),
-                                  style: TextButton.styleFrom(foregroundColor: Colors.blue),
-                                  onPressed: () => _findNewDriver(b['requestId']),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                          // Secondary Actions (Muted)
+                          const SizedBox(height: 6),
+                          TextButton.icon(
+                            icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
+                            label: Text(
+                              t.cancelRequest,
+                              style: const TextStyle(color: Colors.redAccent),
+                            ),
+                            onPressed: () => _cancelRequest(b['requestId']),
+                          ),
+                          if (b['status'] == 'accepted')
+                            TextButton.icon(
+                              icon: const Icon(Icons.search),
+                              label: Text(t.findNewDriver),
+                              onPressed: () => _findNewDriver(b['requestId']),
+                            ),
+                        ],
                       ),
                     );
                   },

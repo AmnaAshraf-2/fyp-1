@@ -11,32 +11,32 @@ class EnterpriseProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.profileSettings, style: const TextStyle(color: Color(0xFF004d4d))),
+        title: Text(t.profileSettings, style: const TextStyle(color: Color(0xFF004d4d))),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF004d4d)),
       ),
-      body: const Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.person,
               size: 80,
               color: Colors.grey,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
-              'Profile & Settings',
+              t.profileSettings,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF004d4d),
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Enterprise profile and settings will appear here',
+              t.enterpriseProfileAndSettingsWillAppearHere,
               style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF004d4d),

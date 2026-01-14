@@ -422,6 +422,15 @@
   "fare": "کرایه",
   "pleaseEnterFareAmount": "مهرباني وکړئ د کرایې مقدار ولیکئ",
   "pleaseEnterValidAmount": "مهرباني وکړئ د مقدار درست ارزښت ولیکئ",
+  "fareCannotBeZero": "کرایه نشي کولی صفر وي",
+  "fareBelowMinimum": "کرایه نشي کولی د کم از کم وړاندیز شوي مقدار څخه لږ وي: روپۍ {minimumFare}",
+  "@fareBelowMinimum": {
+    "placeholders": {
+      "minimumFare": {
+        "type": "String"
+      }
+    }
+  },
   "contactsPermissionDenied": "د اړیکو اجازه رد شوه",
   "exceedsCapacityNeed": "د ظرفیت څخه زیات! اړتیا",
   "vehicles": "موټر(ونه)",
@@ -534,5 +543,230 @@
       }
     }
   },
-  "pleaseSelectOrEnterLocation": "مهرباني وکړئ موقعیت غوره کړئ یا ولیکئ"
+  "pleaseSelectOrEnterLocation": "مهرباني وکړئ موقعیت غوره کړئ یا ولیکئ",
+  "notificationPreferences": "د خبرتیا غوره توبې",
+  "notificationPreferencesDesc": "غوره کړئ چې تاسو غواړئ خبرتیاوې څنګه ترلاسه کړئ",
+  "emailNotifications": "د بریښنالیک خبرتیاوې",
+  "emailNotificationsDesc": "د بریښنالیک له لارې خبرتیاوې ترلاسه کړئ",
+  "smsNotifications": "د SMS خبرتیاوې",
+  "smsNotificationsDesc": "د SMS له لارې خبرتیاوې ترلاسه کړئ",
+  "inAppNotifications": "په اپ کې خبرتیاوې",
+  "inAppNotificationsDesc": "په اپ کې خبرتیاوې ترلاسه کړئ",
+  "preferencesSaved": "د خبرتیا غوره توبې په بریالیتوب سره خوندي شوې",
+  "errorSavingPreferences": "د خبرتیا غوره توبې خوندي کولو کې تېروتنه",
+  "errorLoadingPreferences": "د غوره توبو د پورته کولو تېروتنه:",
+  
+  "newAssignments": "نوې دندې",
+  "noNewAssignments": "هیڅ نوې دندې نشته",
+  "rejected": "رد شوی",
+  "from": "څخه",
+  "to": "ته",
+  "vehicle": "موټر",
+  "assigned": "تخصیص شوی",
+  "assignmentAccepted": "دنده ومنل شوه",
+  "assignmentRejected": "دنده رد شوه",
+  "errorRespondingToAssignment": "د دندې ته ځواب ورکولو کې تېروتنه:",
+  "booking": "بکینګ",
+  "nA": "شتون نلري",
+  "enterpriseDriver": "د سازمان چلوونکی",
+  
+  "setYourPassword": "خپل پټنوم ټاکئ",
+  "welcomeSetSecurePassword": "ښه راغلاست! مهرباني وکړئ د خپل حساب لپاره خوندي پټنوم ټاکئ.",
+  "pleaseEnterPassword": "مهرباني وکړئ پټنوم ولیکئ",
+  "pleaseConfirmPassword": "مهرباني وکړئ خپل پټنوم تصدیق کړئ",
+  "enterYourPassword": "خپل پټنوم ولیکئ",
+  "confirmYourPassword": "خپل پټنوم تصدیق کړئ",
+  "settingUp": "سیټ اپ کېږي...",
+  "setPassword": "پټنوم ټاکئ",
+  "passwordSetSuccessfully": "پټنوم په بریالیتوب سره ټاکل شو!",
+  "failedToSetPassword": "د پټنوم د ټاکلو کې ناکامي. مهرباني وکړئ بیا هڅه وکړئ.",
+  "passwordTooWeak": "پټنوم ډیر ضعیف دی. مهرباني وکړئ قوي پټنوم وټاکئ.",
+  "sessionExpiredSetPassword": "غونډه پای ته رسېدلې. مهرباني وکړئ ووځئ او بیا ننوځئ، بیا خپل پټنوم ټاکئ.",
+  "emailMismatch": "بریښنالیک سمون نلري. مهرباني وکړئ د سم حساب سره ننوځئ.",
+  
+  "activeTrips": "فعال سفرونه",
+  "noActiveTrips": "هیڅ فعال سفرونه نشته",
+  "dispatchedBookingsWillAppearHere": "لیږل شوي بکینګونه دلته به ښکاره شي",
+  "inProgress": "پرمختګ کې",
+  "dispatched": "لیږل شوی",
+  "dispatchedAt": "لیږل شوی",
+  "assignedResources": "تخصیص شوي سرچینې",
+  "markAsDelivered": "د سپارلو په توګه نښه کړئ",
+  "areYouSureMarkAsDelivered": "ایا تاسو ډاډه یاست چې دا بکینګ سپارل شوی دی؟ پیرودونکی به خبر شي.",
+  "bookingMarkedAsDeliveredSuccessfully": "بکینګ په بریالیتوب سره د سپارلو په توګه نښه شو",
+  "errorMarkingAsDelivered": "د سپارلو په توګه نښه کولو کې تېروتنه:",
+  "errorRequestIdNotFound": "تېروتنه: د غوښتنې شمیره ونه موندل شوه",
+  "requestNotFound": "غوښتنه ونه موندل شوه",
+  "yourCargo": "ستاسو کارګو",
+  "yourBookingHasBeenDelivered": "ستاسو بکینګ \"{loadName}\" سپارل شوی دی",
+  "@yourBookingHasBeenDelivered": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "yourBookingHasBeenDispatched": "ستاسو بکینګ \"{loadName}\" لیږل شوې ده او په لار کې ده",
+  "@yourBookingHasBeenDispatched": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "bookingHasBeenDispatched": "بکینګ لیږل شوې ده",
+  "deliveryCompletedForAssignedBooking": "د تخصیص شوي بکینګ لپاره سپارل بشپړ شو",
+  "vehicle": "موټر",
+  "vehicleNumber": "موټر {number}",
+  "@vehicleNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "inactive": "غیر فعال",
+  "emailAlreadyRegisteredAsDriver": "دا بریښنالیک دمخه د سازمان چلوونکی په توګه ثبت شوی دی.",
+  "emailAlreadyRegisteredDifferentRole": "دا بریښنالیک دمخه د مختلف رول سره ثبت شوی دی.",
+  "driverCanNowLoginToSetupAccount": "چلوونکی اوس کولی شي د خپل بریښنالیک سره ننوځي او خپل حساب تنظیم کړي.",
+  "driverStatusChangedTo": "د چلوونکي حالت {status} ته بدل شو",
+  "@driverStatusChangedTo": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingDriverStatus": "د چلوونکي د حالت تازه کولو تېروتنه:",
+  "searchDriversBy": "چلوونکي د نوم، تلیفون، CNIC، یا جواز له لارې وپلټئ...",
+  "noDriversFoundForSearch": "هیڅ چلوونکي ونه موندل شول",
+  "tryDifferentSearchTerm": "مختلف پلټنې اصطلاح وازمویئ",
+  "totalEarnings": "ټول عایدات",
+  "average": "منځنی",
+  "noEarningsYet": "تر اوسه هیڅ عایدات نشته",
+  "earningsWillAppearHere": "ستاسو عایدات د بکینګونو بشپړولو وروسته دلته به ښکاره شي",
+  "earningsHistory": "د عایداتو تاریخ",
+  "earnings": "عایدات",
+  "completed": "بشپړ شوی",
+  "newCustomerRequestsWillAppearHere": "نوي پیرودونکو غوښتنې دلته به ښکاره شي",
+  "counterOfferLabel": "کاونټر وړاندیز:",
+  "audioNote": "د غږ یادښت",
+  "audioNoteOptional": "د غږ یادښت (اختیاري)",
+  "recordAudioNote": "د غږ یادښت ثبت کړئ",
+  "stopRecording": "د ثبت کولو بندول",
+  "failedToStartRecording": "د ثبت کولو پیل کولو کې ناکامي. مهرباني وکړئ د مایکروفون اجازتونه وګورئ.",
+  "uploadingAudioNote": "د غږ یادښت پورته کېږي...",
+  "audioNoteUploadedSuccessfully": "د غږ یادښت په بریالیتوب سره پورته شو!",
+  "errorUploadingAudio": "د غږ د پورته کولو تېروتنه: {error}",
+  "@errorUploadingAudio": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "upload": "پورته کړئ",
+  "audioNoteAttached": "د غږ یادښت نښلول شوی",
+  "remove": "لرې کړئ",
+  "tapToPlayCustomerAudioNote": "د پیرودونکي د غږ یادښت د پلې کولو لپاره ټاپ وکړئ",
+  "pause": "درول",
+  "play": "پلې کړئ",
+  "errorPlayingAudio": "د غږ د پلې کولو تېروتنه: {error}",
+  "@errorPlayingAudio": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noCompletedBookingsYet": "تر اوسه هیڅ بشپړ بکینګونه نشته",
+  "completedBookingHistoryWillAppearHere": "ستاسو د بشپړ بکینګونو تاریخ دلته به ښکاره شي",
+  "delivered": "سپارل شوی",
+  "customerId": "پیرودونکی ID",
+  "deliveredAt": "سپارل شو",
+  "enterpriseProfileAndSettingsWillAppearHere": "د سازمان پروفایل او تنظیمات دلته به ښکاره شي",
+  "loading": "پورته کېږي...",
+  "noVehiclesFoundForSearch": "هیڅ موټر ونه موندل شول",
+  "searchVehiclesBy": "موټرونه د جوړونکي، ثبت، ډول، یا رنګ له لارې وپلټئ...",
+  "vehicleStatusChangedTo": "د موټر حالت {status} ته بدل شو",
+  "@vehicleStatusChangedTo": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingVehicleStatus": "د موټر د حالت تازه کولو تېروتنه:",
+  "driverCancelledRequest": "چلوونکي غوښتنه لغوه کړه",
+  "driverHasStartedJourney": "چلوونکي سفر پیل کړ",
+  "trips": "سفرونه",
+  "revenue": "عایدات",
+  "commission": "کمیسیون",
+  "loadingEarnings": "عایدات پورته کېږي...",
+  "earningsWillAppearAfterTrips": "ستاسو عایدات د سفرونو بشپړولو وروسته دلته به ښکاره شي",
+  "trip": "سفر",
+  "customerPhoneNumberNotAvailable": "د پیرودونکي تلیفون شمیره شتون نلري",
+  "errorCallingCustomer": "د پیرودونکي د کال کولو تېروتنه:",
+  "noActiveTrip": "هیڅ فعال سفر نشته",
+  "startJourneyFromUpcomingTrips": "د راتلونکو سفرونو څخه سفر پیل کړئ",
+  "journeyInProgress": "سفر روان دی",
+  "started": "پیل شو:",
+  "senderPhone": "د لیږونکي تلیفون",
+  "receiverPhone": "د ترلاسه کوونکي تلیفون",
+  "viewDirectionsOnMap": "په نقشه کې لارښوونې وګورئ",
+  "yourCargoHasBeenDeliveredSuccessfully": "ستاسو کارګو په بریالیتوب سره سپارل شو",
+  "pleaseWaitForAllDriversToCompleteJourney": "مهرباني وکړئ د ټولو چلوونکو د سفر بشپړیدو انتظار وکړئ مخکې له دې چې تاسو دا د سپارلو په توګه نښه کړئ.",
+  "allDriversHaveCompletedJourney": "ټول چلوونکو سفر بشپړ کړی دی",
+  "statusAccepted": "ومنل شوی",
+  "statusDispatched": "لیږل شوی",
+  "statusInProgress": "پرمختګ کې",
+  "contactEnterprise": "سازمان",
+  "pickupLabel": "رااخیستل",
+  "fareLabel": "کرایه",
+  "enterpriseContactNotAvailable": "د سازمان د اړیکو شمیره شتون نلري",
+  "errorContactingEnterprise": "د سازمان سره اړیکه کولو کې تېروتنه",
+  "errorCancellingRequest": "د غوښتنې لغوه کولو کې تېروتنه",
+  "notification": "خبرتیا",
+  "driverDetails": "د چلوونکي تفصیلات",
+  "plateNumber": "د پلیټ شمیره",
+  "destination": "منزل",
+  "allDriversStartedCanMarkDispatched": "د {loadName} لپاره ټول چلوونکو سفر پیل کړی دی. تاسو اوس کولی شئ دا د لیږلو په توګه نښه کړئ.",
+  "@allDriversStartedCanMarkDispatched": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "cargoInTransit": "ستاسو کارګو اوس د لیږد کې دی",
+  "driverAcceptedAssignment": "{driverName} د {loadName} لپاره دنده ومنله",
+  "@driverAcceptedAssignment": {
+    "placeholders": {
+      "driverName": {
+        "type": "String"
+      },
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "driverRejectedAssignment": "{driverName} د {loadName} لپاره دنده رد کړه",
+  "@driverRejectedAssignment": {
+    "placeholders": {
+      "driverName": {
+        "type": "String"
+      },
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "allDriversVehiclesAssignedReady": "د {loadName} لپاره ټول چلوونکي او موټرونه تخصیص او منل شوي دي. ستاسو بکینګ چمتو دی!",
+  "@allDriversVehiclesAssignedReady": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  }
 }

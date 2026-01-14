@@ -518,11 +518,12 @@ class _WaitingForResponseScreenState extends State<WaitingForResponseScreen> {
         });
 
         // Notify driver/enterprise about cancellation
+        final t = AppLocalizations.of(context)!;
         if (driverId != null) {
           await _db.child('driver_notifications/$driverId').push().set({
             'type': 'request_cancelled',
             'requestId': widget.requestId,
-            'message': 'Customer cancelled the request',
+            'message': t.customerCancelledRequest,
             'timestamp': DateTime.now().millisecondsSinceEpoch,
           });
         }
@@ -530,7 +531,7 @@ class _WaitingForResponseScreenState extends State<WaitingForResponseScreen> {
           await _db.child('enterprise_notifications/$enterpriseId').push().set({
             'type': 'request_cancelled',
             'requestId': widget.requestId,
-            'message': 'Customer cancelled the request',
+            'message': t.customerCancelledRequest,
             'timestamp': DateTime.now().millisecondsSinceEpoch,
           });
         }
@@ -715,7 +716,8 @@ class _WaitingForResponseScreenState extends State<WaitingForResponseScreen> {
       }
     });
 
-    // Listen for driver or enterprise acceptance
+    // Listen for driver or enterprise acceptance (but don't show dialog if customer accepted)
+    // The _acceptOffer method handles navigation when customer accepts
     _db.child('requests/${widget.requestId}').onValue.listen((event) {
       if (event.snapshot.exists) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
@@ -727,71 +729,7 @@ class _WaitingForResponseScreenState extends State<WaitingForResponseScreen> {
         if (data['status'] == 'accepted') {
           // Prevent timeout dialog from showing
           _hasShownTimeoutDialog = true;
-          
-          // Check if driver or enterprise accepted
-          final driverId = data['acceptedDriverId'];
-          final enterpriseId = data['acceptedEnterpriseId'];
-          
-          if (driverId != null || enterpriseId != null) {
-            // Show success dialog popup
-            if (mounted) {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => AlertDialog(
-                  title: Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 28),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.offerAccepted,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF004d4d),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  content: Text(
-                    driverId != null
-                        ? AppLocalizations.of(context)!.requestAcceptedByDriver
-                        : AppLocalizations.of(context)!.requestAcceptedByEnterprise,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF004d4d),
-                    ),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  actions: [
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Close dialog
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const UpcomingBookingsScreen(),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade800,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(AppLocalizations.of(context)!.viewBookings),
-                    ),
-                  ],
-                ),
-              );
-            }
-          }
+          // Don't show dialog here - navigation is handled by _acceptOffer method
         }
       }
     });
@@ -866,16 +804,7 @@ class _WaitingForResponseScreenState extends State<WaitingForResponseScreen> {
 
       print('🔍 DEBUG: Other offers removed and new_offers cleaned up');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t.offerAccepted)),
-      );
-
-      // Wait a moment to show the "accepted" status on the card
-      await Future.delayed(const Duration(milliseconds: 1500));
-
-      print('🔍 DEBUG: Navigating to upcoming bookings');
-
-      // Navigate to upcoming bookings
+      // Navigate to upcoming bookings immediately without showing dialog
       if (mounted) {
         Navigator.pushReplacement(
           context,

@@ -250,6 +250,9 @@ class _BaseDrawerState extends State<BaseDrawer> {
         case 'enterprise':
           Navigator.pushReplacementNamed(context, '/enterpriseDashboard');
           break;
+        case 'enterprise_driver':
+          Navigator.pushReplacementNamed(context, '/enterpriseDriverDashboard');
+          break;
       }
     });
   }

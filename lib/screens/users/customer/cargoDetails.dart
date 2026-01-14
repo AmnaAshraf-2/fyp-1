@@ -53,6 +53,10 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
   // Audio recording service
   final AudioRecorderService _audioService = AudioRecorderService();
   String? _audioNoteUrl; // Firebase Storage URL after upload
+  final ScrollController _scrollController = ScrollController();
+
+  // Minimum fare (80% of suggested fare)
+  double? _minimumFare;
 
   @override
   void initState() {
@@ -77,11 +81,14 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
       pickupTime = widget.initialData!.pickupTime;
       isInsured = widget.initialData!.isInsured;
       _audioNoteUrl = widget.initialData!.audioNoteUrl;
+      // Set minimum fare to 80% of initial fare
+      _minimumFare = widget.initialData!.offerFare * 0.8;
     }
     _pickupLocationController.addListener(_autoCalculateFare);
     _destinationLocationController.addListener(_autoCalculateFare);
     _weightController.addListener(_autoCalculateFare);
     _weightController.addListener(_onWeightChanged);
+    _offerFareController.addListener(_onFareChanged);
   }
 
   void _onLocaleChanged() {
@@ -137,7 +144,9 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
     _destinationLocationController.removeListener(_autoCalculateFare);
     _weightController.removeListener(_autoCalculateFare);
     _weightController.removeListener(_onWeightChanged);
+    _offerFareController.removeListener(_onFareChanged);
     _audioService.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -163,9 +172,10 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
       weightInKg = weight * 1000;
     }
 
+    final currentQuantity = int.tryParse(_quantityController.text) ?? 1;
+    
     if (weightInKg > maxCapacity) {
       int requiredVehicles = (weightInKg / maxCapacity).ceil();
-      final currentQuantity = int.tryParse(_quantityController.text) ?? 1;
       if (currentQuantity != requiredVehicles) {
         _quantityController.text = requiredVehicles.toString();
         if (mounted) {
@@ -182,8 +192,10 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
         }
       }
     } else {
-      final currentQuantity = int.tryParse(_quantityController.text) ?? 1;
-      if (currentQuantity < 1) {
+      // Weight is within single vehicle capacity, so quantity should be 1
+      if (currentQuantity > 1) {
+        _quantityController.text = '1';
+      } else if (currentQuantity < 1) {
         _quantityController.text = '1';
       }
     }
@@ -247,9 +259,13 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        child: Scrollbar(
+          controller: _scrollController,
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _sectionTitle(t.cargoDetailsSection),
@@ -306,6 +322,10 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                   ],
                 ),
               ),
+              _sectionTitle(t.audioNote),
+              _card(
+                _buildAudioNoteSection(t),
+              ),
               _sectionTitle(t.fareInsuranceSection),
               _card(
                 Column(
@@ -315,15 +335,13 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                   ],
                 ),
               ),
-              _sectionTitle('Audio Note'), // TODO: Add to localization
-              _card(
-                _buildAudioNoteSection(t),
-              ),
+              
               const SizedBox(height: 80),
             ],
           ),
+            ),
+          ),
         ),
-      ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -1224,9 +1242,51 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             style: const TextStyle(color: Colors.black87),
+            onChanged: (value) {
+              // Validate and show warning if below minimum, but allow typing
+              if (value.trim().isNotEmpty) {
+                final fareValue = double.tryParse(value.trim());
+                if (fareValue != null) {
+                  if (fareValue <= 0) {
+                    // Show warning for zero or negative
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(t.fareCannotBeZero),
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  } else if (_minimumFare != null && fareValue < _minimumFare!) {
+                    // Show warning for below minimum
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(t.fareBelowMinimum(_minimumFare!.toStringAsFixed(0))),
+                          backgroundColor: Colors.orange,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  }
+                }
+              }
+              // Trigger validation
+              if (_formKey.currentState != null) {
+                _formKey.currentState!.validate();
+              }
+            },
             validator: (value) {
               if (value == null || value.trim().isEmpty) return t.pleaseEnterFareAmount;
-              if (double.tryParse(value.trim()) == null) return t.pleaseEnterValidAmount;
+              final fareValue = double.tryParse(value.trim());
+              if (fareValue == null) return t.pleaseEnterValidAmount;
+              if (fareValue <= 0) return t.fareCannotBeZero;
+              if (_minimumFare != null && fareValue < _minimumFare!) {
+                return t.fareBelowMinimum(_minimumFare!.toStringAsFixed(0));
+              }
               return null;
             },
           ),
@@ -1266,9 +1326,17 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
         return;
       }
       double finalFare = fareData['finalFare'] ?? 0.0;
+      // Set minimum fare to 80% of suggested fare
+      _minimumFare = finalFare * 0.8;
       _offerFareController.text = finalFare.toStringAsFixed(0);
     } catch (e) {
       print('Auto-calculation error: $e');
+    }
+  }
+
+  void _onFareChanged() {
+    if (_formKey.currentState != null) {
+      _formKey.currentState!.validate();
     }
   }
 
@@ -1277,7 +1345,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Audio Note (Optional)',
+          t.audioNoteOptional,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -1292,9 +1360,9 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               icon: const Icon(Icons.mic, color: Colors.white),
-              label: const Text(
-                'Record Audio Note',
-                style: TextStyle(color: Colors.white),
+              label: Text(
+                t.recordAudioNote,
+                style: const TextStyle(color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
@@ -1310,8 +1378,8 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                 } else {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Failed to start recording. Please check microphone permissions.'),
+                      SnackBar(
+                        content: Text(t.failedToStartRecording),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -1329,9 +1397,9 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.stop, color: Colors.white),
-                  label: const Text(
-                    'Stop Recording',
-                    style: TextStyle(color: Colors.white),
+                  label: Text(
+                    t.stopRecording,
+                    style: const TextStyle(color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
@@ -1414,7 +1482,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                         } catch (e) {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error playing audio: $e')),
+                              SnackBar(content: Text(t.errorPlayingAudio(e.toString()))),
                             );
                           }
                         }
@@ -1434,9 +1502,9 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                         try {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Uploading audio note...'),
-                                duration: Duration(seconds: 2),
+                              SnackBar(
+                                content: Text(t.uploadingAudioNote),
+                                duration: const Duration(seconds: 2),
                               ),
                             );
                           }
@@ -1446,8 +1514,8 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                               _audioNoteUrl = url;
                             });
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Audio note uploaded successfully!'),
+                              SnackBar(
+                                content: Text(t.audioNoteUploadedSuccessfully),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -1456,7 +1524,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Error uploading audio: $e'),
+                                content: Text(t.errorUploadingAudio(e.toString())),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -1467,7 +1535,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                         backgroundColor: Colors.teal,
                         foregroundColor: Colors.white,
                       ),
-                      child: const Text('Upload'),
+                      child: Text(t.upload),
                     ),
                   ],
                 ),
@@ -1488,9 +1556,9 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
               children: [
                 const Icon(Icons.check_circle, color: Colors.green),
                 const SizedBox(width: 8),
-                const Text(
-                  'Audio note attached',
-                  style: TextStyle(
+                Text(
+                  t.audioNoteAttached,
+                  style: const TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1503,7 +1571,7 @@ class _CargoDetailsScreenState extends State<CargoDetailsScreen> {
                       _audioService.deleteRecording();
                     });
                   },
-                  child: const Text('Remove', style: TextStyle(color: Colors.red)),
+                  child: Text(t.remove, style: const TextStyle(color: Colors.red)),
                 ),
               ],
             ),

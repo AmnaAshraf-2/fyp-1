@@ -31,9 +31,7 @@ class CustomerDrawer extends StatelessWidget {
       DrawerMenuItem(
         icon: Icons.settings,
         title: loc.settings,
-        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(loc.settingsComingSoon)),
-        ),
+        onTap: () => Navigator.pushNamed(context, '/notification-preferences'),
       ),
       DrawerMenuItem(
         icon: Icons.help_outline,

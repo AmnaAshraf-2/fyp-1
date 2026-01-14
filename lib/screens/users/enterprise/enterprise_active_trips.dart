@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logistics_app/screens/users/customer/route_map_view.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise_drivers_live_location_map.dart';
 
 // Teal color palette
 const kTealDark = Color(0xFF004D4D);
@@ -91,8 +92,9 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
           final acceptedEnterpriseId = requestData['acceptedEnterpriseId'] as String?;
           final acceptedDriverId = requestData['acceptedDriverId'] as String?;
 
-          // Check if this request is dispatched or in_progress by this enterprise or one of its drivers
-          if ((status == 'dispatched' || status == 'in_progress') && 
+          // Check if this request is dispatched, in_progress, or all drivers completed by this enterprise or one of its drivers
+          final allDriversCompleted = requestData['allDriversCompleted'] == true;
+          if ((status == 'dispatched' || status == 'in_progress' || (status == 'completed' && allDriversCompleted)) && 
               (acceptedEnterpriseId == user.uid || 
                (acceptedDriverId != null && driverIds.contains(acceptedDriverId)))) {
             requestData['requestId'] = requestId;
@@ -181,9 +183,10 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                     final driverId = assignment['driverId'] as String?;
                     final vehicleId = assignment['vehicleId'] as String?;
                     
-                    final Map<String, dynamic> loadedAssignment = {};
+                    // Start with all existing assignment data to preserve status, journeyCompleted, journeyStarted, etc.
+                    final Map<String, dynamic> loadedAssignment = Map<String, dynamic>.from(assignment);
                     
-                    // Load driver details
+                    // Load driver details (update/add but don't replace existing data)
                     if (driverId != null) {
                       final driverSnapshot = await _db.child('users/${user.uid}/drivers/$driverId').get();
                       if (driverSnapshot.exists) {
@@ -197,7 +200,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                       }
                     }
                     
-                    // Load vehicle details
+                    // Load vehicle details (update/add but don't replace existing data)
                     if (vehicleId != null) {
                       final vehicleSnapshot = await _db.child('users/${user.uid}/vehicles/$vehicleId').get();
                       if (vehicleSnapshot.exists) {
@@ -294,7 +297,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          'Active Trips',
+          t.activeTrips,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -317,7 +320,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
           ),
           const SizedBox(height: 16),
           Text(
-            'No Active Trips',
+            t.noActiveTrips,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -326,7 +329,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
           ),
           const SizedBox(height: 8),
           Text(
-            'Dispatched bookings will appear here',
+            t.dispatchedBookingsWillAppearHere,
             style: TextStyle(
               fontSize: 14,
               color: Colors.white.withOpacity(.8),
@@ -362,6 +365,49 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
         : null;
     final status = trip['status'] as String? ?? 'dispatched';
     final isInProgress = status == 'in_progress';
+    
+    // Check if all drivers have completed
+    final allDriversCompleted = trip['allDriversCompleted'] == true;
+    final assignedResourcesRaw = trip['assignedResources'];
+    bool canMarkAsDelivered = true;
+    
+    // For enterprise bookings with assigned resources, check if all drivers completed
+    if (assignedResourcesRaw != null) {
+      Map<String, dynamic> assignedResourcesMap = {};
+      
+      // Handle both Map and List types
+      if (assignedResourcesRaw is Map) {
+        assignedResourcesMap = Map<String, dynamic>.from(assignedResourcesRaw);
+      } else if (assignedResourcesRaw is List) {
+        // Convert List to Map with index as key
+        for (int i = 0; i < assignedResourcesRaw.length; i++) {
+          final item = assignedResourcesRaw[i];
+          if (item != null && item is Map) {
+            assignedResourcesMap[i.toString()] = Map<String, dynamic>.from(item);
+          }
+        }
+      }
+      
+      if (assignedResourcesMap.isNotEmpty) {
+        int completedCount = 0;
+        int totalAcceptedCount = 0;
+        
+        for (final assignment in assignedResourcesMap.values) {
+          if (assignment is Map) {
+            final assignmentData = Map<String, dynamic>.from(assignment);
+            final assignmentStatus = assignmentData['status'] as String?;
+            if (assignmentStatus == 'accepted') {
+              totalAcceptedCount++;
+              if (assignmentData['journeyCompleted'] == true) {
+                completedCount++;
+              }
+            }
+          }
+        }
+        
+        canMarkAsDelivered = (completedCount >= totalAcceptedCount && totalAcceptedCount > 0) || allDriversCompleted;
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
@@ -412,7 +458,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        isInProgress ? 'In Progress' : 'Dispatched',
+                        isInProgress ? t.inProgress : t.dispatched,
                         style: TextStyle(
                           color: isInProgress ? Colors.blue : Colors.green,
                           fontWeight: FontWeight.bold,
@@ -449,7 +495,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                         const Icon(Icons.person, color: Colors.white, size: 18),
                         const SizedBox(width: 8),
                         Text(
-                          'Customer Information',
+                          t.customerInformation,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -459,27 +505,27 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _buildInfoRow('Name', trip['customerName'] ?? 'N/A'),
+                    _buildInfoRow(t.firstName, trip['customerName'] ?? t.nA),
                     if (trip['customerPhone'] != null)
-                      _buildInfoRow('Phone', trip['customerPhone']),
+                      _buildInfoRow(t.phoneNumber, trip['customerPhone']),
                     if (trip['customerEmail'] != null)
-                      _buildInfoRow('Email', trip['customerEmail']),
+                      _buildInfoRow(t.email, trip['customerEmail']),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
             ],
             // Load details
-            _buildInfoRow(t.loadName, trip['loadName'] ?? 'N/A'),
+            _buildInfoRow(t.loadName, trip['loadName'] ?? t.nA),
             _buildInfoRow(t.loadType, _getLoadTypeLabel(trip['loadType'], t)),
             _buildInfoRow(t.loadWeight, '${trip['weight']} ${trip['weightUnit']}'),
             _buildInfoRow(t.quantity, '${trip['quantity']}'),
-            _buildInfoRow(t.vehicleType, trip['vehicleType'] ?? 'N/A'),
-            _buildInfoRow(t.finalFare, 'Rs. ${trip['finalFare'] ?? trip['offerFare'] ?? 'N/A'}'),
-            _buildInfoRow(t.pickupTime, trip['pickupTime'] ?? 'N/A'),
+            _buildInfoRow(t.vehicleType, trip['vehicleType'] ?? t.nA),
+            _buildInfoRow(t.finalFare, 'Rs. ${trip['finalFare'] ?? trip['offerFare'] ?? t.nA}'),
+            _buildInfoRow(t.pickupTime, trip['pickupTime'] ?? t.nA),
             if (dispatchedAt != null) ...[
               const SizedBox(height: 8),
-              _buildInfoRow('Dispatched At', _formatDateTime(dispatchedAt)),
+              _buildInfoRow(t.dispatchedAt, _formatDateTime(dispatchedAt)),
             ],
             // Show assigned drivers and vehicles
             if (trip['assignedResources'] != null) ...[
@@ -498,7 +544,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                         const Icon(Icons.assignment_ind, color: Colors.orange, size: 18),
                         const SizedBox(width: 8),
                         Text(
-                          'Assigned Resources',
+                          t.assignedResources,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -554,9 +600,9 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                           children: assignments.asMap().entries.map((entry) {
                             final index = entry.key;
                             final assignment = entry.value;
-                            final driverName = assignment['driverName'] ?? 'N/A';
+                            final driverName = assignment['driverName'] ?? t.nA;
                             final vehicleInfoRaw = assignment['vehicleInfo'];
-                            String vehicleInfo = 'N/A';
+                            String vehicleInfo = t.nA;
                             
                             if (vehicleInfoRaw != null && vehicleInfoRaw is Map) {
                               final vehicleData = Map<String, dynamic>.from(vehicleInfoRaw);
@@ -564,7 +610,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                               final registration = vehicleData['registrationNumber'] ?? '';
                               vehicleInfo = makeModel.isNotEmpty 
                                 ? '$makeModel${registration.isNotEmpty ? ' ($registration)' : ''}'
-                                : 'N/A';
+                                : t.nA;
                             }
                             
                             return Padding(
@@ -579,7 +625,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Vehicle ${index + 1}:',
+                                      '${t.vehicle} ${index + 1}:',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
@@ -587,8 +633,8 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    _buildInfoRow('Driver', driverName),
-                                    _buildInfoRow('Vehicle', vehicleInfo),
+                                    _buildInfoRow(t.driver, driverName),
+                                    _buildInfoRow(t.vehicle, vehicleInfo),
                                   ],
                                 ),
                               ),
@@ -604,47 +650,114 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
             // Show locations if available
             if (trip['pickupLocation'] != null && trip['destinationLocation'] != null) ...[
               const SizedBox(height: 12),
-              _buildInfoRow(t.pickupLocation, trip['pickupLocation'] ?? 'N/A'),
-              _buildInfoRow(t.destinationLocation, trip['destinationLocation'] ?? 'N/A'),
+              _buildInfoRow(t.pickupLocation, trip['pickupLocation'] ?? t.nA),
+              _buildInfoRow(t.destinationLocation, trip['destinationLocation'] ?? t.nA),
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.map, color: Colors.white),
-                  label: Text(t.viewRouteOnMap, style: const TextStyle(color: Colors.white)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.map, color: Colors.white),
+                      label: Text(t.viewRouteOnMap, style: const TextStyle(color: Colors.white)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RouteMapView(
+                              pickupLocation: trip['pickupLocation'] ?? '',
+                              destinationLocation: trip['destinationLocation'] ?? '',
+                              loadName: trip['loadName'],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RouteMapView(
-                          pickupLocation: trip['pickupLocation'] ?? '',
-                          destinationLocation: trip['destinationLocation'] ?? '',
-                          loadName: trip['loadName'],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.location_on, color: Colors.white),
+                      label: Text(t.driverLocation, style: const TextStyle(color: Colors.white)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white),
+                      ),
+                      onPressed: () {
+                        final assignedResourcesRaw = trip['assignedResources'];
+                        if (assignedResourcesRaw != null && assignedResourcesRaw is Map) {
+                          final assignedResources = Map<String, dynamic>.from(assignedResourcesRaw);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EnterpriseDriversLiveLocationMap(
+                                requestId: trip['requestId'] ?? '',
+                                assignedResources: assignedResources,
+                                pickupLocation: trip['pickupLocation'] ?? '',
+                                destinationLocation: trip['destinationLocation'] ?? '',
+                                loadName: trip['loadName'] ?? '',
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(t.noActiveDriversAvailable),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            // Show status indicator if all drivers completed
+            if (allDriversCompleted || canMarkAsDelivered) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        t.allDriversHaveCompletedJourney,
+                        style: TextStyle(
+                          color: Colors.green.shade800,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
             ],
+            
             // Mark as delivered button
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.check_circle, color: Colors.white),
-                label: const Text(
-                  'Mark as Delivered',
-                  style: TextStyle(color: Colors.white),
+                label: Text(
+                  t.markAsDelivered,
+                  style: const TextStyle(color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: canMarkAsDelivered ? Colors.green : Colors.grey,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                onPressed: () => _markAsDelivered(trip),
+                onPressed: canMarkAsDelivered ? () => _markAsDelivered(trip) : null,
               ),
             ),
           ],
@@ -692,22 +805,23 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
       case 'general':
         return t.generalGoods;
       default:
-        return loadType ?? 'N/A';
+        return loadType ?? AppLocalizations.of(context)!.nA;
     }
   }
 
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
+    final t = AppLocalizations.of(context)!;
     
     if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return '${difference.inDays} ${difference.inDays == 1 ? t.dayAgo : t.daysAgo}';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return '${difference.inHours} ${difference.inHours == 1 ? t.hourAgo : t.hoursAgo}';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return '${difference.inMinutes} ${difference.inMinutes == 1 ? t.minuteAgo : t.minutesAgo}';
     } else {
-      return 'Just now';
+      return t.justNow;
     }
   }
 
@@ -719,16 +833,66 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
     final requestId = trip['requestId'] as String?;
     
     if (requestId == null) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: Request ID not found'),
+        SnackBar(
+          content: Text(t.errorRequestIdNotFound),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
+    // Validate that all drivers have completed
+    final assignedResourcesRaw = trip['assignedResources'];
+    if (assignedResourcesRaw != null) {
+      Map<String, dynamic> assignedResourcesMap = {};
+      
+      // Handle both Map and List types
+      if (assignedResourcesRaw is Map) {
+        assignedResourcesMap = Map<String, dynamic>.from(assignedResourcesRaw);
+      } else if (assignedResourcesRaw is List) {
+        // Convert List to Map with index as key
+        for (int i = 0; i < assignedResourcesRaw.length; i++) {
+          final item = assignedResourcesRaw[i];
+          if (item != null && item is Map) {
+            assignedResourcesMap[i.toString()] = Map<String, dynamic>.from(item);
+          }
+        }
+      }
+      
+      if (assignedResourcesMap.isNotEmpty) {
+        int completedCount = 0;
+        int totalAcceptedCount = 0;
+        
+        for (final assignment in assignedResourcesMap.values) {
+          if (assignment is Map) {
+            final assignmentData = Map<String, dynamic>.from(assignment);
+            final status = assignmentData['status'] as String?;
+            if (status == 'accepted') {
+              totalAcceptedCount++;
+              if (assignmentData['journeyCompleted'] == true) {
+                completedCount++;
+              }
+            }
+          }
+        }
+        
+        if (completedCount < totalAcceptedCount || totalAcceptedCount == 0) {
+          final t = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(t.pleaseWaitForAllDriversToCompleteJourney),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+      }
+    }
+
     // Show confirmation dialog
+    final t = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -742,7 +906,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
             Icon(Icons.check_circle, color: Colors.green.shade800),
             const SizedBox(width: 8),
             Text(
-              'Mark as Delivered',
+              t.markAsDelivered,
               style: TextStyle(
                 color: Colors.green.shade800,
                 fontWeight: FontWeight.bold,
@@ -750,9 +914,9 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
             ),
           ],
         ),
-        content: const Text(
-          'Are you sure this booking has been delivered? The customer will be notified.',
-          style: TextStyle(fontSize: 16),
+        content: Text(
+          t.areYouSureMarkAsDelivered,
+          style: const TextStyle(fontSize: 16),
         ),
         actions: [
           TextButton(
@@ -760,7 +924,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
             style: TextButton.styleFrom(
               foregroundColor: Colors.grey.shade700,
             ),
-            child: const Text('Cancel'),
+            child: Text(t.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -768,7 +932,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
               backgroundColor: Colors.green.shade800,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Mark as Delivered'),
+            child: Text(t.markAsDelivered),
           ),
         ],
       ),
@@ -780,12 +944,13 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
       final user = _auth.currentUser;
       if (user == null) return;
 
-      // Get the full request data
+      // Get the full request data (fresh from database)
+      final t = AppLocalizations.of(context)!;
       final requestSnapshot = await _db.child('requests/$requestId').get();
       if (!requestSnapshot.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Request not found'),
+          SnackBar(
+            content: Text(t.requestNotFound),
             backgroundColor: Colors.red,
           ),
         );
@@ -793,6 +958,54 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
       }
 
       final requestData = Map<String, dynamic>.from(requestSnapshot.value as Map);
+      
+      // Validate again with fresh data from database
+      final assignedResourcesRawFresh = requestData['assignedResources'];
+      if (assignedResourcesRawFresh != null) {
+        Map<String, dynamic> assignedResourcesMapFresh = {};
+        
+        // Handle both Map and List types
+        if (assignedResourcesRawFresh is Map) {
+          assignedResourcesMapFresh = Map<String, dynamic>.from(assignedResourcesRawFresh);
+        } else if (assignedResourcesRawFresh is List) {
+          // Convert List to Map with index as key
+          for (int i = 0; i < assignedResourcesRawFresh.length; i++) {
+            final item = assignedResourcesRawFresh[i];
+            if (item != null && item is Map) {
+              assignedResourcesMapFresh[i.toString()] = Map<String, dynamic>.from(item);
+            }
+          }
+        }
+        
+        if (assignedResourcesMapFresh.isNotEmpty) {
+          int completedCount = 0;
+          int totalAcceptedCount = 0;
+          
+          for (final assignment in assignedResourcesMapFresh.values) {
+            if (assignment is Map) {
+              final assignmentData = Map<String, dynamic>.from(assignment);
+              final status = assignmentData['status'] as String?;
+              if (status == 'accepted') {
+                totalAcceptedCount++;
+                if (assignmentData['journeyCompleted'] == true) {
+                  completedCount++;
+                }
+              }
+            }
+          }
+          
+          if (completedCount < totalAcceptedCount || totalAcceptedCount == 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Please wait for all drivers to complete their journey. $completedCount of $totalAcceptedCount completed.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
+          }
+        }
+      }
+      
       final customerId = requestData['customerId'] as String?;
       final deliveredAt = DateTime.now().millisecondsSinceEpoch;
 
@@ -885,11 +1098,11 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
 
       // Notify customer that delivery is completed
       if (customerId != null) {
-        final loadName = requestData['loadName'] as String? ?? 'your cargo';
+        final loadName = requestData['loadName'] as String? ?? t.yourCargo;
         await _db.child('customer_notifications/$customerId').push().set({
           'type': 'journey_completed',
           'requestId': requestId,
-          'message': 'Your booking for "$loadName" has been delivered',
+          'message': t.yourBookingHasBeenDelivered(loadName),
           'timestamp': deliveredAt,
           'isRead': false,
           'enterpriseId': user.uid, // Include enterpriseId for rating
@@ -920,7 +1133,7 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
                 await _db.child('driver_notifications/$driverId').push().set({
                   'type': 'journey_completed',
                   'requestId': requestId,
-                  'message': 'Delivery completed for assigned booking',
+                  'message': t.deliveryCompletedForAssignedBooking,
                   'timestamp': deliveredAt,
                   'isRead': false,
                 });
@@ -933,9 +1146,10 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
       }
 
       if (mounted) {
+        final t = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Booking marked as delivered successfully'),
+          SnackBar(
+            content: Text(t.bookingMarkedAsDeliveredSuccessfully),
             backgroundColor: Colors.green,
           ),
         );
@@ -945,9 +1159,10 @@ class _EnterpriseActiveTripsScreenState extends State<EnterpriseActiveTripsScree
       await _loadActiveTrips();
     } catch (e) {
       if (mounted) {
+        final t = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error marking as delivered: $e'),
+            content: Text('${t.errorMarkingAsDelivered} $e'),
             backgroundColor: Colors.red,
           ),
         );

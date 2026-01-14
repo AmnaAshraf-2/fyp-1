@@ -226,17 +226,22 @@ class _PastTripsScreenState extends State<PastTripsScreen> {
                     if (trip['pickupDate'] != null && trip['pickupDate'] != 'N/A')
                       _buildDetailRow(t.pickupDate, trip['pickupDate']),
                     _buildDetailRow(t.pickupTime, trip['pickupTime'] ?? 'N/A'),
-                    _buildDetailRow('Fare', 'Rs ${trip['finalFare'] ?? trip['offerFare']}'),
+                    // Don't show fare for enterprise drivers (check if trip has assignedResources)
+                    if (trip['assignedResources'] == null && trip['isEnterpriseDriver'] != true)
+                      _buildDetailRow('Fare', 'Rs ${trip['finalFare'] ?? trip['offerFare']}'),
                     _buildDetailRow('Insurance', trip['isInsured'] == true ? 'Yes' : 'No'),
                     SizedBox(height: 16),
                     if (trip['pickupLocation'] != null)
                       _buildDetailRow('Pickup Location', trip['pickupLocation']),
                     if (trip['destinationLocation'] != null)
                       _buildDetailRow('Destination', trip['destinationLocation']),
-                    if (trip['senderPhone'] != null)
-                      _buildDetailRow('Sender Phone', trip['senderPhone']),
-                    if (trip['receiverPhone'] != null)
-                      _buildDetailRow('Receiver Phone', trip['receiverPhone']),
+                    // Don't show sender/receiver phone numbers for enterprise drivers
+                    if (trip['assignedResources'] == null && trip['isEnterpriseDriver'] != true) ...[
+                      if (trip['senderPhone'] != null)
+                        _buildDetailRow('Sender Phone', trip['senderPhone']),
+                      if (trip['receiverPhone'] != null)
+                        _buildDetailRow('Receiver Phone', trip['receiverPhone']),
+                    ],
                     SizedBox(height: 16),
                     if (trip['journeyStartedAt'] != null)
                       _buildDetailRow('Journey Started', _formatTimestamp(trip['journeyStartedAt'])),
@@ -478,11 +483,13 @@ class _PastTripsScreenState extends State<PastTripsScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    'Fare: Rs ${trip['finalFare'] ?? trip['offerFare']}',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                  // Don't show fare for enterprise drivers
+                                  if (trip['assignedResources'] == null && trip['isEnterpriseDriver'] != true)
+                                    Text(
+                                      'Fare: Rs ${trip['finalFare'] ?? trip['offerFare']}',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
                                       color: Colors.green.shade700,
                                     ),
                                   ),

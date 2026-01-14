@@ -9,6 +9,7 @@ class VehicleModel {
   final Map<String, String> name; // Multilingual name
   final Map<String, String> capacity; // Multilingual capacity
   final String firebaseKey;
+  final String? image; // Vehicle image path
 
   VehicleModel({
     required this.nameKey,
@@ -16,6 +17,7 @@ class VehicleModel {
     required this.name,
     required this.capacity,
     required this.firebaseKey,
+    this.image,
   });
 
   /// Get localized name based on current language
@@ -42,13 +44,21 @@ class VehicleModel {
       'ps': 'N/A',
     };
 
-    return VehicleModel(
+    final vehicleModel = VehicleModel(
       nameKey: vehicle.nameKey,
       capacityKey: vehicle.capacityKey,
       name: Map<String, String>.from(nameMap),
       capacity: Map<String, String>.from(capacityMap),
       firebaseKey: key,
+      image: vehicle.image,
     );
+    
+    // Debug: print image path if available
+    if (kDebugMode && vehicle.image != null) {
+      print('🚚 Vehicle ${vehicle.nameKey} has image: ${vehicle.image}');
+    }
+    
+    return vehicleModel;
   }
 }
 

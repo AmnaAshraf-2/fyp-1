@@ -10,8 +10,22 @@ class LocationPermissionService {
 
   /// Request location permission and enable location services
   /// Returns true if permission is granted, false otherwise
+  /// If permission is already granted, returns early without showing any dialogs
   Future<bool> requestLocationPermission(BuildContext? context) async {
     try {
+      // First check if permission is already granted
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      // If permission is already granted, return early without showing any dialogs
+      if (permission == LocationPermission.whileInUse || 
+          permission == LocationPermission.always) {
+        if (kDebugMode) {
+          print('✅ Location permission already granted');
+        }
+        return true;
+      }
+
+      // Permission is not granted, proceed with request flow
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -32,8 +46,8 @@ class LocationPermissionService {
         }
       }
 
-      // Check current permission status
-      LocationPermission permission = await Geolocator.checkPermission();
+      // Re-check permission status (might have changed)
+      permission = await Geolocator.checkPermission();
       
       if (permission == LocationPermission.denied) {
         // Request permission
@@ -94,16 +108,25 @@ class LocationPermissionService {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Location Services Disabled'),
+          backgroundColor: Colors.white,
+          title: const Text(
+            'Location Services Disabled',
+            style: TextStyle(color: Color(0xFF004d4d)),
+          ),
           content: const Text(
             'Location services are disabled. Please enable them in your device settings to find nearby customers.',
+            style: TextStyle(color: Color(0xFF004d4d)),
           ),
           actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF004d4d),
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
+              child: const Text('OK'),
             ),
           ],
         );
@@ -117,16 +140,25 @@ class LocationPermissionService {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Location Permission Required'),
+          backgroundColor: Colors.white,
+          title: const Text(
+            'Location Permission Required',
+            style: TextStyle(color: Color(0xFF004d4d)),
+          ),
           content: const Text(
             'Location permission is required to find nearby customers and receive delivery requests. Please grant location permission in app settings.',
+            style: TextStyle(color: Color(0xFF004d4d)),
           ),
           actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF004d4d),
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
+              child: const Text('OK'),
             ),
           ],
         );
@@ -140,23 +172,36 @@ class LocationPermissionService {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Location Permission Required'),
+          backgroundColor: Colors.white,
+          title: const Text(
+            'Location Permission Required',
+            style: TextStyle(color: Color(0xFF004d4d)),
+          ),
           content: const Text(
             'Location permission is permanently denied. Please enable it in your device settings to use this feature.',
+            style: TextStyle(color: Color(0xFF004d4d)),
           ),
           actions: <Widget>[
-            TextButton(
-              child: const Text('Open Settings'),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF004d4d),
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 Geolocator.openLocationSettings();
                 Navigator.of(context).pop();
               },
+              child: const Text('Open Settings'),
             ),
-            TextButton(
-              child: const Text('Cancel'),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF004d4d),
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
+              child: const Text('Cancel'),
             ),
           ],
         );
@@ -164,6 +209,24 @@ class LocationPermissionService {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

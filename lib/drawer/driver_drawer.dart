@@ -5,6 +5,7 @@ import 'package:logistics_app/screens/users/driver/driver_new_offers.dart';
 import 'package:logistics_app/screens/users/driver/upcoming_trips.dart';
 import 'package:logistics_app/screens/users/driver/past_trips.dart';
 import 'package:logistics_app/screens/users/driver/driver_notifications.dart';
+import 'package:logistics_app/screens/users/driver/driver_earnings.dart';
 
 class DriverDrawer extends StatelessWidget {
   const DriverDrawer({super.key});
@@ -54,6 +55,14 @@ class DriverDrawer extends StatelessWidget {
         ),
       ),
       DrawerMenuItem(
+        icon: Icons.account_balance_wallet,
+        title: 'Earnings',
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const DriverEarningsScreen()),
+        ),
+      ),
+      DrawerMenuItem(
         icon: Icons.person,
         title: loc.profile,
         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
@@ -71,9 +80,7 @@ class DriverDrawer extends StatelessWidget {
       DrawerMenuItem(
         icon: Icons.settings,
         title: loc.settings,
-        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(loc.settingsComingSoon)),
-        ),
+        onTap: () => Navigator.pushNamed(context, '/notification-preferences'),
       ),
       DrawerMenuItem(
         icon: Icons.help_outline,

@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "798522688381",
+    "firebase_url": "https://fyp-1-2dbaf-default-rtdb.firebaseio.com",
     "project_id": "fyp-1-2dbaf",
     "storage_bucket": "fyp-1-2dbaf.firebasestorage.app"
   },
@@ -12,15 +13,40 @@
           "package_name": "com.example.logistics_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "798522688381-545rm4s8ec8e9egf7todcta6k1i9enn1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.logistics_app",
+            "certificate_hash": "3dcbb90363a74d3d42478c8d1cbf6d604e81bc8d"
+          }
+        },
+        {
+          "client_id": "798522688381-r3arcksdo4svbdbtnp7923d7i7idjq78.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDFOW1G-RFnsMNn7OWS-adyuR9-2beZUPk"
+          "current_key": "AIzaSyAJMxGoUZZWjgfFtfXAADRzryzVug96vZM"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "798522688381-mv4hfu4g5k4ljv9hicpmtvh46oq8hihk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "798522688381-kphlecq2i843evoqseagif3cs6t52fvg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.logisticsApp"
+              }
+            }
+          ]
         }
       }
     }

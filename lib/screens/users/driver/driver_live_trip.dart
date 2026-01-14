@@ -54,24 +54,87 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
         return;
       }
 
-      // Listen for active trip (status = in_progress)
+      // Check if user is enterprise driver
+      final userSnapshot = await _db.child('users/${user.uid}').get();
+      bool isEnterpriseDriver = false;
+      if (userSnapshot.exists) {
+        final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
+        isEnterpriseDriver = userData['role'] == 'enterprise_driver';
+      }
+
+      // Listen for active trip (status = in_progress for regular drivers, or journeyStarted = true for enterprise drivers)
       _db.child('requests').onValue.listen((event) {
         if (event.snapshot.exists) {
+          Map<String, dynamic>? activeTrip;
+          
           for (final request in event.snapshot.children) {
             final requestData = Map<String, dynamic>.from(request.value as Map);
-            if (requestData['acceptedDriverId'] == user.uid && 
-                requestData['status'] == 'in_progress') {
-              requestData['requestId'] = request.key;
-              setState(() {
-                _liveTrip = requestData;
-                _isLoading = false;
-              });
-              return;
+            final requestId = request.key;
+            if (requestId == null) continue;
+            bool isActiveTrip = false;
+            
+            if (isEnterpriseDriver) {
+              // For enterprise drivers, check assignedResources
+              final assignedResourcesRaw = requestData['assignedResources'];
+              if (assignedResourcesRaw != null) {
+                Map<String, dynamic> assignedResourcesMap = {};
+                
+                // Handle both Map and List types
+                if (assignedResourcesRaw is Map) {
+                  assignedResourcesMap = Map<String, dynamic>.from(assignedResourcesRaw);
+                } else if (assignedResourcesRaw is List) {
+                  // Convert List to Map with index as key
+                  for (int i = 0; i < assignedResourcesRaw.length; i++) {
+                    final item = assignedResourcesRaw[i];
+                    if (item != null && item is Map) {
+                      assignedResourcesMap[i.toString()] = Map<String, dynamic>.from(item);
+                    }
+                  }
+                }
+                
+                // Check for active trips - only include if journey started but NOT completed
+                for (final entry in assignedResourcesMap.entries) {
+                  final index = entry.key;
+                  final assignment = entry.value;
+                  if (assignment is Map) {
+                    final assignmentData = Map<String, dynamic>.from(assignment);
+                    final driverAuthUid = assignmentData['driverAuthUid'] as String?;
+                    final status = assignmentData['status'] as String?;
+                    final journeyStarted = assignmentData['journeyStarted'] == true;
+                    final journeyCompleted = assignmentData['journeyCompleted'] == true;
+                    
+                    // Check if this driver is assigned, accepted, has started journey, but NOT completed
+                    // Once journey is completed, it should not appear in live trip section
+                    if (driverAuthUid == user.uid && 
+                        status == 'accepted' && 
+                        journeyStarted && 
+                        !journeyCompleted) {
+                      isActiveTrip = true;
+                      // Add assignment-specific data to requestData
+                      requestData['requestId'] = requestId;
+                      requestData['assignmentIndex'] = index.toString();
+                      requestData['vehicleInfo'] = assignmentData['vehicleInfo'];
+                      requestData['journeyStartedAt'] = assignmentData['journeyStartedAt'];
+                      requestData['isEnterpriseDriver'] = true;
+                      activeTrip = requestData;
+                      break; // Found active trip for this driver, no need to check other assignments
+                    }
+                  }
+                }
+              }
+            } else {
+              // For regular drivers, check acceptedDriverId and status
+              if (requestData['acceptedDriverId'] == user.uid && 
+                  requestData['status'] == 'in_progress') {
+                requestData['requestId'] = requestId;
+                activeTrip = requestData;
+              }
             }
           }
-          // No active trip found
+          
+          // Update state based on whether active trip was found
           setState(() {
-            _liveTrip = null;
+            _liveTrip = activeTrip;
             _isLoading = false;
           });
         } else {
@@ -103,22 +166,25 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
         
         if (phoneNumber != null) {
           final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+          final t = AppLocalizations.of(context)!;
           if (await canLaunchUrl(phoneUri)) {
             await launchUrl(phoneUri);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Cannot make call to $phoneNumber')),
+              SnackBar(content: Text(t.cannotMakeCall(phoneNumber))),
             );
           }
         } else {
+          final t = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Customer phone number not available')),
+            SnackBar(content: Text(t.customerPhoneNumberNotAvailable)),
           );
         }
       }
     } catch (e) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error calling customer: $e')),
+        SnackBar(content: Text('${t.errorCallingCustomer} $e')),
       );
     }
   }
@@ -150,8 +216,9 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
         // Get the full request data before updating
         final requestSnapshot = await _db.child('requests/$requestId').get();
         if (!requestSnapshot.exists) {
+          final t = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Request not found')),
+            SnackBar(content: Text(t.requestNotFound)),
           );
           return;
         }
@@ -161,11 +228,107 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
         final driverId = _auth.currentUser?.uid;
         final journeyCompletedAt = DateTime.now().millisecondsSinceEpoch;
 
-        // Update request status to completed
-        await _db.child('requests/$requestId').update({
-          'status': 'completed',
-          'journeyCompletedAt': journeyCompletedAt,
-        });
+        // Check if user is enterprise driver
+        final userSnapshot = await _db.child('users/${driverId}').get();
+        bool isEnterpriseDriver = false;
+        String? assignmentIndex;
+        if (userSnapshot.exists) {
+          final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
+          isEnterpriseDriver = userData['role'] == 'enterprise_driver';
+        }
+
+        // Get assignment index if enterprise driver
+        if (isEnterpriseDriver && _liveTrip != null) {
+          assignmentIndex = _liveTrip!['assignmentIndex'] as String?;
+        }
+
+        if (isEnterpriseDriver && assignmentIndex != null) {
+          // For enterprise drivers, update the assignment status
+          await _db.child('requests/$requestId/assignedResources/$assignmentIndex').update({
+            'journeyCompleted': true,
+            'journeyCompletedAt': journeyCompletedAt,
+          });
+          
+          // Check if all assigned drivers have completed journey
+          final assignedResourcesRaw = requestData['assignedResources'];
+          if (assignedResourcesRaw != null) {
+            Map<String, dynamic> assignedResourcesMap = {};
+            
+            // Handle both Map and List types
+            if (assignedResourcesRaw is Map) {
+              assignedResourcesMap = Map<String, dynamic>.from(assignedResourcesRaw);
+            } else if (assignedResourcesRaw is List) {
+              // Convert List to Map with index as key
+              for (int i = 0; i < assignedResourcesRaw.length; i++) {
+                final item = assignedResourcesRaw[i];
+                if (item != null && item is Map) {
+                  assignedResourcesMap[i.toString()] = Map<String, dynamic>.from(item);
+                }
+              }
+            }
+            
+            int completedCount = 0;
+            int totalAcceptedCount = 0;
+            
+            for (final assignment in assignedResourcesMap.values) {
+              if (assignment is Map) {
+                final assignmentData = Map<String, dynamic>.from(assignment);
+                final status = assignmentData['status'] as String?;
+                if (status == 'accepted') {
+                  totalAcceptedCount++;
+                  if (assignmentData['journeyCompleted'] == true) {
+                    completedCount++;
+                  }
+                }
+              }
+            }
+            
+            // If all accepted drivers have completed, notify enterprise and set flag
+            if (completedCount >= totalAcceptedCount && totalAcceptedCount > 0) {
+              // Try to get enterprise ID from multiple sources
+              String? enterpriseId = requestData['acceptedEnterpriseId'] as String?;
+              
+              // If acceptedEnterpriseId is not set, try to get from assignedBy in assignedResources
+              if (enterpriseId == null && assignedResourcesMap.isNotEmpty) {
+                for (final assignment in assignedResourcesMap.values) {
+                  if (assignment is Map) {
+                    final assignmentData = Map<String, dynamic>.from(assignment);
+                    final assignedBy = assignmentData['assignedBy'] as String?;
+                    if (assignedBy != null) {
+                      enterpriseId = assignedBy;
+                      break; // Use the first assignedBy found
+                    }
+                  }
+                }
+              }
+              
+              // Set flag that all drivers have completed (keep status as 'dispatched' until enterprise marks as delivered)
+              await _db.child('requests/$requestId').update({
+                'allDriversCompleted': true,
+                'allDriversCompletedAt': journeyCompletedAt,
+                'journeyCompletedAt': journeyCompletedAt,
+              });
+              
+              // Notify enterprise that all drivers have completed
+              if (enterpriseId != null) {
+                final loadName = requestData['loadName'] as String? ?? 'booking';
+                await _db.child('enterprise_notifications/$enterpriseId').push().set({
+                  'type': 'all_drivers_completed',
+                  'requestId': requestId,
+                  'message': 'All drivers have completed journey for $loadName. You can now mark it as delivered.',
+                  'timestamp': journeyCompletedAt,
+                  'isRead': false,
+                });
+              }
+            }
+          }
+        } else {
+          // For regular drivers, update request status to completed
+          await _db.child('requests/$requestId').update({
+            'status': 'completed',
+            'journeyCompletedAt': journeyCompletedAt,
+          });
+        }
 
         // Prepare delivery history data
         final deliveryHistory = {
@@ -213,17 +376,27 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
 
         // Notify customer that journey is completed
         if (customerId != null) {
+          final t = AppLocalizations.of(context)!;
           await _db.child('customer_notifications/$customerId').push().set({
             'type': 'journey_completed',
             'requestId': requestId,
             'driverId': driverId,
-            'message': 'Your cargo has been delivered successfully',
+            'message': t.yourCargoHasBeenDeliveredSuccessfully,
             'timestamp': journeyCompletedAt,
           });
         }
 
         // Stop location tracking
         await LocationTrackingService().stopTracking();
+
+        // For enterprise drivers, explicitly clear the live trip since it's completed
+        if (isEnterpriseDriver) {
+          if (mounted) {
+            setState(() {
+              _liveTrip = null;
+            });
+          }
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(t.journeyCompletedSuccessfully)),
@@ -250,7 +423,7 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
       case 'general':
         return t.generalGoods;
       default:
-        return loadType ?? 'N/A';
+        return loadType ?? t.nA;
     }
   }
 
@@ -280,7 +453,7 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No active trip',
+                        t.noActiveTrip,
                         style: const TextStyle(
                           fontSize: 18,
                           color: Color(0xFF004d4d),
@@ -288,7 +461,7 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Start a journey from Upcoming Trips',
+                        t.startJourneyFromUpcomingTrips,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -318,9 +491,9 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Journey In Progress',
-                                    style: TextStyle(
+                                  Text(
+                                    t.journeyInProgress,
+                                    style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.green,
@@ -328,7 +501,7 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                                   ),
                                   if (_liveTrip!['journeyStartedAt'] != null)
                                     Text(
-                                      'Started: ${_formatTimestamp(_liveTrip!['journeyStartedAt'])}',
+                                      '${t.started} ${_formatTimestamp(_liveTrip!['journeyStartedAt'])}',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey,
@@ -350,32 +523,51 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                           borderRadius: BorderRadius.circular(12),
                           side: const BorderSide(color: Color(0xFF004d4d), width: 1),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                t.tripDetails,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF004d4d),
-                                ),
+                        child: Builder(
+                          builder: (context) {
+                            // Check if user is enterprise driver
+                            final isEnterpriseDriver = _liveTrip!['isEnterpriseDriver'] == true;
+                            
+                            return Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    t.tripDetails,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF004d4d),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _buildDetailRow(t.loadName, _liveTrip!['loadName'] ?? t.nA),
+                                  _buildDetailRow(t.loadType, _getLoadTypeLabel(_liveTrip!['loadType'], t)),
+                                  _buildDetailRow(t.weight, '${_liveTrip!['weight']} ${_liveTrip!['weightUnit']}'),
+                                  _buildDetailRow(t.quantity, '${_liveTrip!['quantity']} ${t.vehicles}'),
+                                  _buildDetailRow(t.vehicleType, _liveTrip!['vehicleType'] ?? t.nA),
+                                  if (_liveTrip!['pickupDate'] != null && _liveTrip!['pickupDate'] != t.nA)
+                                    _buildDetailRow(t.pickupDate, _liveTrip!['pickupDate']),
+                                  _buildDetailRow(t.pickupTime, _liveTrip!['pickupTime'] ?? t.nA),
+                                  // Don't show fare for enterprise drivers
+                                  if (!isEnterpriseDriver) ...[
+                                    Builder(
+                                      builder: (context) {
+                                        final finalFare = _liveTrip!['finalFare'];
+                                        final offerFare = _liveTrip!['offerFare'];
+                                        final fareText = finalFare != null 
+                                            ? 'Rs $finalFare' 
+                                            : (offerFare != null ? 'Rs $offerFare' : t.nA);
+                                        return _buildDetailRow(t.fare, fareText);
+                                      },
+                                    ),
+                                  ],
+                                  _buildDetailRow(t.insurance, _liveTrip!['isInsured'] == true ? t.yes : t.no),
+                                ],
                               ),
-                              const SizedBox(height: 16),
-                              _buildDetailRow(t.loadName, _liveTrip!['loadName'] ?? 'N/A'),
-                              _buildDetailRow(t.loadType, _getLoadTypeLabel(_liveTrip!['loadType'], t)),
-                              _buildDetailRow(t.weight, '${_liveTrip!['weight']} ${_liveTrip!['weightUnit']}'),
-                              _buildDetailRow(t.quantity, '${_liveTrip!['quantity']} vehicle(s)'),
-                              _buildDetailRow(t.vehicleType, _liveTrip!['vehicleType'] ?? 'N/A'),
-                              if (_liveTrip!['pickupDate'] != null && _liveTrip!['pickupDate'] != 'N/A')
-                                _buildDetailRow(t.pickupDate, _liveTrip!['pickupDate']),
-                              _buildDetailRow(t.pickupTime, _liveTrip!['pickupTime'] ?? 'N/A'),
-                              _buildDetailRow('Fare', 'Rs ${_liveTrip!['finalFare'] ?? _liveTrip!['offerFare']}'),
-                              _buildDetailRow('Insurance', _liveTrip!['isInsured'] == true ? 'Yes' : 'No'),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -427,7 +619,7 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Pickup Location',
+                                            t.pickupLocation,
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -436,7 +628,7 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            _liveTrip!['pickupLocation'] ?? 'Not specified',
+                                            _liveTrip!['pickupLocation'] ?? t.notSpecified,
                                             style: const TextStyle(
                                               fontSize: 16,
                                               color: Color(0xFF004d4d),
@@ -487,7 +679,7 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Destination Location',
+                                            t.destinationLocation,
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -496,7 +688,7 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            _liveTrip!['destinationLocation'] ?? 'Not specified',
+                                            _liveTrip!['destinationLocation'] ?? t.notSpecified,
                                             style: const TextStyle(
                                               fontSize: 16,
                                               color: Color(0xFF004d4d),
@@ -512,7 +704,7 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
                                     icon: const Icon(Icons.directions, color: Colors.white),
-                                    label: const Text('View Directions on Map', style: TextStyle(color: Colors.white)),
+                                    label: Text(t.viewDirectionsOnMap, style: const TextStyle(color: Colors.white)),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.blue,
                                       foregroundColor: Colors.white,
@@ -537,59 +729,61 @@ class _DriverLiveTripScreenState extends State<DriverLiveTripScreen> {
                         ),
                       const SizedBox(height: 20),
 
-                      // Contact Information
-                      Card(
-                        color: Colors.white,
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: Color(0xFF004d4d), width: 1),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Contact Information',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF004d4d),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              if (_liveTrip!['senderPhone'] != null)
-                                _buildDetailRow('Sender Phone', _liveTrip!['senderPhone']),
-                              if (_liveTrip!['receiverPhone'] != null)
-                                _buildDetailRow('Receiver Phone', _liveTrip!['receiverPhone']),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.phone, color: Colors.white),
-                                  label: const Text('Call Customer', style: TextStyle(color: Colors.white)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    foregroundColor: Colors.white,
+                      // Contact Information - Only show for regular drivers
+                      if (_liveTrip!['isEnterpriseDriver'] != true) ...[
+                        Card(
+                          color: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: Color(0xFF004d4d), width: 1),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t.contactInformation,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF004d4d),
                                   ),
-                                  onPressed: () => _callCustomer(_liveTrip!['customerId']),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 16),
+                                if (_liveTrip!['senderPhone'] != null)
+                                  _buildDetailRow(t.senderPhone, _liveTrip!['senderPhone']),
+                                if (_liveTrip!['receiverPhone'] != null)
+                                  _buildDetailRow(t.receiverPhone, _liveTrip!['receiverPhone']),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(Icons.phone, color: Colors.white),
+                                    label: Text(t.callCustomer, style: const TextStyle(color: Colors.white)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () => _callCustomer(_liveTrip!['customerId']),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 20),
+                      ],
 
                       // Complete Journey Button
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.check_circle, color: Colors.white, size: 24),
-                          label: const Text(
-                            'Complete Journey',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                          label: Text(
+                            t.completeJourney,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,

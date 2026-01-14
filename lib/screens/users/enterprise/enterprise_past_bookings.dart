@@ -164,7 +164,7 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          'Past Bookings',
+          t.pastBookings,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -187,7 +187,7 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
           ),
           const SizedBox(height: 16),
           Text(
-            'No completed bookings yet',
+            t.noCompletedBookingsYet,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -196,7 +196,7 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
           ),
           const SizedBox(height: 8),
           Text(
-            'Your completed booking history will appear here',
+            t.completedBookingHistoryWillAppearHere,
             style: TextStyle(
               fontSize: 14,
               color: Colors.white.withOpacity(.8),
@@ -274,7 +274,7 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
                       const Icon(Icons.check_circle, color: Colors.green, size: 16),
                       const SizedBox(width: 4),
                       Text(
-                        'Delivered',
+                        t.delivered,
                         style: const TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.bold,
@@ -311,7 +311,7 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
                         const Icon(Icons.person, color: Colors.white, size: 18),
                         const SizedBox(width: 8),
                         Text(
-                          'Customer Information',
+                          t.customerInformation,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -321,23 +321,23 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _buildInfoRow('Customer ID', booking['customerId'] ?? 'N/A'),
+                    _buildInfoRow(t.customerId, booking['customerId'] ?? t.nA),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
             ],
             // Booking details
-            _buildInfoRow(t.loadName, booking['loadName'] ?? 'N/A'),
+            _buildInfoRow(t.loadName, booking['loadName'] ?? t.nA),
             _buildInfoRow(t.loadType, _getLoadTypeLabel(booking['loadType'], t)),
             _buildInfoRow(t.loadWeight, '${booking['weight']} ${booking['weightUnit']}'),
             _buildInfoRow(t.quantity, '${booking['quantity']}'),
-            _buildInfoRow(t.vehicleType, booking['vehicleType'] ?? 'N/A'),
-            _buildInfoRow(t.finalFare, 'Rs. ${booking['finalFare'] ?? booking['offerFare'] ?? 'N/A'}'),
-            _buildInfoRow(t.pickupTime, booking['pickupTime'] ?? 'N/A'),
+            _buildInfoRow(t.vehicleType, booking['vehicleType'] ?? t.nA),
+            _buildInfoRow(t.finalFare, 'Rs. ${booking['finalFare'] ?? booking['offerFare'] ?? t.nA}'),
+            _buildInfoRow(t.pickupTime, booking['pickupTime'] ?? t.nA),
             if (completedDate != null) ...[
               const SizedBox(height: 8),
-              _buildInfoRow('Delivered At', _formatDateTime(completedDate)),
+              _buildInfoRow(t.deliveredAt, _formatDateTime(completedDate)),
             ],
             // Show assigned drivers and vehicles
             if (booking['assignedResources'] != null) ...[
@@ -356,7 +356,7 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
                         const Icon(Icons.assignment_ind, color: Colors.orange, size: 18),
                         const SizedBox(width: 8),
                         Text(
-                          'Assigned Resources',
+                          t.assignedResources,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -412,9 +412,10 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
                           children: assignments.asMap().entries.map((entry) {
                             final index = entry.key;
                             final assignment = entry.value;
-                            final driverName = assignment['driverName'] ?? 'N/A';
+                            final t = AppLocalizations.of(context)!;
+                            final driverName = assignment['driverName'] ?? t.nA;
                             final vehicleInfoRaw = assignment['vehicleInfo'];
-                            String vehicleInfo = 'N/A';
+                            String vehicleInfo = t.nA;
                             
                             if (vehicleInfoRaw != null && vehicleInfoRaw is Map) {
                               final vehicleData = Map<String, dynamic>.from(vehicleInfoRaw);
@@ -422,7 +423,7 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
                               final registration = vehicleData['registrationNumber'] ?? '';
                               vehicleInfo = makeModel.isNotEmpty 
                                 ? '$makeModel${registration.isNotEmpty ? ' ($registration)' : ''}'
-                                : 'N/A';
+                                : t.nA;
                             }
                             
                             return Padding(
@@ -437,7 +438,7 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Vehicle ${index + 1}:',
+                                      t.vehicleNumber('${index + 1}'),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
@@ -445,8 +446,8 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    _buildInfoRow('Driver', driverName),
-                                    _buildInfoRow('Vehicle', vehicleInfo),
+                                    _buildInfoRow(t.driver, driverName),
+                                    _buildInfoRow(t.vehicle, vehicleInfo),
                                   ],
                                 ),
                               ),
@@ -462,8 +463,8 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
             // Show locations if available
             if (booking['pickupLocation'] != null && booking['destinationLocation'] != null) ...[
               const SizedBox(height: 12),
-              _buildInfoRow(t.pickupLocation, booking['pickupLocation'] ?? 'N/A'),
-              _buildInfoRow(t.destinationLocation, booking['destinationLocation'] ?? 'N/A'),
+              _buildInfoRow(t.pickupLocation, booking['pickupLocation'] ?? t.nA),
+              _buildInfoRow(t.destinationLocation, booking['destinationLocation'] ?? t.nA),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
@@ -533,22 +534,23 @@ class _EnterprisePastBookingsScreenState extends State<EnterprisePastBookingsScr
       case 'general':
         return t.generalGoods;
       default:
-        return loadType ?? 'N/A';
+        return loadType ?? t.nA;
     }
   }
 
   String _formatTimestamp(DateTime timestamp) {
+    final t = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final difference = now.difference(timestamp);
     
     if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return '${difference.inDays} ${difference.inDays == 1 ? t.dayAgo : t.daysAgo}';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return '${difference.inHours} ${difference.inHours == 1 ? t.hourAgo : t.hoursAgo}';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return '${difference.inMinutes} ${difference.inMinutes == 1 ? t.minuteAgo : t.minutesAgo}';
     } else {
-      return 'Just now';
+      return t.justNow;
     }
   }
 

@@ -460,7 +460,8 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
       final originalFare = (offer['offerFare'] ?? 0).toDouble();
 
       // Get enterprise name from user profile
-      String enterpriseName = 'Enterprise';
+      final t = AppLocalizations.of(context)!;
+      String enterpriseName = t.enterpriseUser;
       final enterpriseSnapshot = await _db.child('users/${user.uid}').get();
       if (enterpriseSnapshot.exists) {
         final enterpriseData = Map<String, dynamic>.from(enterpriseSnapshot.value as Map);
@@ -473,7 +474,7 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
                         enterpriseData['companyName'] ?? 
                         enterpriseData['full_name'] ?? 
                         enterpriseData['name'] ?? 
-                        'Enterprise';
+                        t.enterpriseUser;
       }
 
       // Create acceptance offer for customer (shows as response for 10 seconds)
@@ -601,7 +602,8 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
 
       if (result != null) {
         // Get enterprise name from user profile
-        String enterpriseName = 'Enterprise';
+        final t = AppLocalizations.of(context)!;
+        String enterpriseName = t.enterpriseUser;
         final enterpriseSnapshot = await _db.child('users/${user.uid}').get();
         if (enterpriseSnapshot.exists) {
           final enterpriseData = Map<String, dynamic>.from(enterpriseSnapshot.value as Map);
@@ -614,7 +616,7 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
                           enterpriseData['companyName'] ?? 
                           enterpriseData['full_name'] ?? 
                           enterpriseData['name'] ?? 
-                          'Enterprise';
+                          t.enterpriseUser;
         }
 
         // Create counter offer for customer
@@ -739,7 +741,7 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadOffers,
-            tooltip: 'Refresh',
+            tooltip: t.refresh,
           ),
         ],
       ),
@@ -767,7 +769,7 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'New customer requests will appear here',
+            t.newCustomerRequestsWillAppearHere,
             style: TextStyle(
               fontSize: 14,
               color: Colors.white.withOpacity(.8),
@@ -850,13 +852,13 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            _buildInfoRow(t.loadName, offer['loadName'] ?? 'N/A'),
+            _buildInfoRow(t.loadName, offer['loadName'] ?? t.nA),
             _buildInfoRow(t.loadType, _getLoadTypeLabel(offer['loadType'], t)),
             _buildInfoRow(t.loadWeight, '${offer['weight']} ${offer['weightUnit']}'),
             _buildInfoRow(t.quantity, '${offer['quantity']}'),
-            _buildInfoRow(t.vehicleType, offer['vehicleType'] ?? 'N/A'),
+            _buildInfoRow(t.vehicleType, offer['vehicleType'] ?? t.nA),
             _buildInfoRow(t.offeredFare, 'Rs. ${offer['offerFare']}'),
-            _buildInfoRow(t.pickupTime, offer['pickupTime'] ?? 'N/A'),
+            _buildInfoRow(t.pickupTime, offer['pickupTime'] ?? t.nA),
             _buildInfoRow(t.insurance, offer['isInsured'] == true ? t.yes : t.no),
             // Show audio note if available
             if (offer['audioNoteUrl'] != null && 
@@ -868,8 +870,8 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
             // Show locations if available
             if (offer['pickupLocation'] != null && offer['destinationLocation'] != null) ...[
               const SizedBox(height: 12),
-              _buildInfoRow(t.pickupLocation, offer['pickupLocation'] ?? 'N/A'),
-              _buildInfoRow(t.destinationLocation, offer['destinationLocation'] ?? 'N/A'),
+              _buildInfoRow(t.pickupLocation, offer['pickupLocation'] ?? t.nA),
+              _buildInfoRow(t.destinationLocation, offer['destinationLocation'] ?? t.nA),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
@@ -910,7 +912,7 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
                     const Icon(Icons.hourglass_empty, color: Colors.blue),
                     const SizedBox(width: 8),
                     Text(
-                      'Waiting for customer\'s response',
+                      t.waitingForCustomerResponse,
                       style: const TextStyle(
                         color: Colors.blue,
                         fontSize: 16,
@@ -922,7 +924,7 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Counter offer: Rs ${offer['counterOfferFare']?.toStringAsFixed(0) ?? 'N/A'}',
+                '${t.counterOfferLabel} Rs ${offer['counterOfferFare']?.toStringAsFixed(0) ?? t.nA}',
                 style: const TextStyle(
                   color: Color(0xFF004d4d),
                   fontSize: 14,
@@ -998,6 +1000,8 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
       return const SizedBox.shrink();
     }
 
+    final t = AppLocalizations.of(context)!;
+
     // Get or create audio player for this request
     if (!_audioPlayers.containsKey(requestId)) {
       _audioPlayers[requestId] = AudioPlayer();
@@ -1027,9 +1031,9 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Audio Note',
-                  style: TextStyle(
+                Text(
+                  t.audioNote,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF004d4d),
@@ -1052,9 +1056,9 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
                     },
                   )
                 else
-                  const Text(
-                    'Tap to play customer audio note',
-                    style: TextStyle(
+                  Text(
+                    t.tapToPlayCustomerAudioNote,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Colors.grey,
                     ),
@@ -1068,7 +1072,7 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
               color: Colors.teal,
             ),
             onPressed: () => _playAudioNote(requestId, audioUrl),
-            tooltip: isPlaying ? 'Pause' : 'Play',
+            tooltip: isPlaying ? t.pause : t.play,
           ),
         ],
       ),
@@ -1116,8 +1120,9 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final t = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error playing audio: $e')),
+          SnackBar(content: Text(t.errorPlayingAudio(e.toString()))),
         );
       }
     }
@@ -1169,7 +1174,7 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
       case 'general':
         return t.generalGoods;
       default:
-        return loadType ?? 'N/A';
+        return loadType ?? t.nA;
     }
   }
 
@@ -1179,11 +1184,11 @@ class _EnterpriseNewOffersScreenState extends State<EnterpriseNewOffersScreen> {
     final difference = now.difference(timestamp);
     
     if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return '${difference.inDays} ${difference.inDays == 1 ? t.dayAgo : t.daysAgo}';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return '${difference.inHours} ${difference.inHours == 1 ? t.hourAgo : t.hoursAgo}';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return '${difference.inMinutes} ${difference.inMinutes == 1 ? t.minuteAgo : t.minutesAgo}';
     } else {
       return t.justNow;
     }

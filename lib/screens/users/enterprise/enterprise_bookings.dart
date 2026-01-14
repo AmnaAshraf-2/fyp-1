@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logistics_app/screens/users/customer/route_map_view.dart';
 import 'package:logistics_app/services/vehicle_provider.dart';
+import 'package:logistics_app/screens/users/enterprise/enterprise_drivers_live_location_map.dart';
 
 // Teal color palette
 const kTealDark = Color(0xFF004D4D);
@@ -174,10 +175,11 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                 final customerSnapshot = await _db.child('users/$customerId').get();
                 if (customerSnapshot.exists) {
                   final customerData = Map<String, dynamic>.from(customerSnapshot.value as Map);
+                  final t = AppLocalizations.of(context)!;
                   requestData['customerName'] = customerData['full_name'] ?? 
                                                 customerData['name'] ?? 
                                                 customerData['companyName'] ?? 
-                                                'Customer';
+                                                t.customer;
                   requestData['customerPhone'] = customerData['phone'] ?? customerData['phoneNumber'];
                   requestData['customerEmail'] = customerData['email'];
                 }
@@ -192,9 +194,10 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                 final driverSnapshot = await _db.child('users/$acceptedDriverId').get();
                 if (driverSnapshot.exists) {
                   final driverData = Map<String, dynamic>.from(driverSnapshot.value as Map);
+                  final t = AppLocalizations.of(context)!;
                   requestData['driverName'] = driverData['full_name'] ?? 
                                              driverData['name'] ?? 
-                                             'Driver';
+                                             t.driver;
                   requestData['driverPhone'] = driverData['phone'] ?? driverData['phoneNumber'];
                   requestData['driverVehicle'] = driverData['vehicleInfo'];
                 }
@@ -235,23 +238,25 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                     final driverId = assignment['driverId'] as String?;
                     final vehicleId = assignment['vehicleId'] as String?;
                     
-                    final Map<String, dynamic> loadedAssignment = {};
+                    // Start with all existing assignment data to preserve status, driverAuthUid, respondedAt, etc.
+                    final Map<String, dynamic> loadedAssignment = Map<String, dynamic>.from(assignment);
                     
-                    // Load driver details
+                    // Load driver details (update/add but don't replace existing data)
                     if (driverId != null) {
                       final driverSnapshot = await _db.child('users/${user.uid}/drivers/$driverId').get();
                       if (driverSnapshot.exists) {
                         final driverData = Map<String, dynamic>.from(driverSnapshot.value as Map);
                         loadedAssignment['driverId'] = driverId;
+                        final t = AppLocalizations.of(context)!;
                         loadedAssignment['driverName'] = driverData['name'] ?? 
                                                          driverData['fullName'] ?? 
-                                                         'Driver';
+                                                         t.driver;
                         loadedAssignment['driverPhone'] = driverData['phone'] ?? 
                                                           driverData['phoneNumber'];
                       }
                     }
                     
-                    // Load vehicle details
+                    // Load vehicle details (update/add but don't replace existing data)
                     if (vehicleId != null) {
                       final vehicleSnapshot = await _db.child('users/${user.uid}/vehicles/$vehicleId').get();
                       if (vehicleSnapshot.exists) {
@@ -371,7 +376,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No Bookings',
+            t.noBookings,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -380,7 +385,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Accepted offers will appear here',
+            t.acceptedOffersWillAppearHere,
             style: TextStyle(
               fontSize: 14,
               color: Colors.white.withOpacity(.8),
@@ -504,11 +509,11 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _buildInfoRow('Name', booking['customerName'] ?? 'N/A'),
+                    _buildInfoRow(t.firstName, booking['customerName'] ?? t.nA),
                     if (booking['customerPhone'] != null)
-                      _buildInfoRow('Phone', booking['customerPhone']),
+                      _buildInfoRow(t.phoneNumber, booking['customerPhone']),
                     if (booking['customerEmail'] != null)
-                      _buildInfoRow('Email', booking['customerEmail']),
+                      _buildInfoRow(t.email, booking['customerEmail']),
                   ],
                 ),
               ),
@@ -530,7 +535,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                         const Icon(Icons.drive_eta, color: Colors.blue, size: 18),
                         const SizedBox(width: 8),
                         Text(
-                          'Assigned Driver',
+                          t.assignedDriver,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -540,9 +545,9 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _buildInfoRow('Name', booking['driverName'] ?? 'N/A'),
+                    _buildInfoRow(t.firstName, booking['driverName'] ?? t.nA),
                     if (booking['driverPhone'] != null)
-                      _buildInfoRow('Phone', booking['driverPhone']),
+                      _buildInfoRow(t.phoneNumber, booking['driverPhone']),
                     if (booking['driverVehicle'] != null)
                       Builder(
                         builder: (context) {
@@ -559,9 +564,9 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if (vehicleName.isNotEmpty)
-                                _buildInfoRow('Vehicle', vehicleName),
+                                _buildInfoRow(t.vehicle, vehicleName),
                               if (vehicleInfo['plateNumber'] != null)
-                                _buildInfoRow('Plate', vehicleInfo['plateNumber'].toString()),
+                                _buildInfoRow(t.plate, vehicleInfo['plateNumber'].toString()),
                             ],
                           );
                         },
@@ -572,13 +577,13 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
               const SizedBox(height: 12),
             ],
             // Load details
-            _buildInfoRow(t.loadName, booking['loadName'] ?? 'N/A'),
+            _buildInfoRow(t.loadName, booking['loadName'] ?? t.nA),
             _buildInfoRow(t.loadType, _getLoadTypeLabel(booking['loadType'], t)),
             _buildInfoRow(t.loadWeight, '${booking['weight']} ${booking['weightUnit']}'),
             _buildInfoRow(t.quantity, '${booking['quantity']}'),
-            _buildInfoRow(t.vehicleType, booking['vehicleType'] ?? 'N/A'),
-            _buildInfoRow(t.finalFare, 'Rs. ${booking['finalFare'] ?? booking['offerFare'] ?? 'N/A'}'),
-            _buildInfoRow(t.pickupTime, booking['pickupTime'] ?? 'N/A'),
+            _buildInfoRow(t.vehicleType, booking['vehicleType'] ?? t.nA),
+            _buildInfoRow(t.finalFare, 'Rs. ${booking['finalFare'] ?? booking['offerFare'] ?? t.nA}'),
+            _buildInfoRow(t.pickupTime, booking['pickupTime'] ?? t.nA),
             _buildInfoRow(t.insurance, booking['isInsured'] == true ? t.yes : t.no),
             // Show offer details if available
             if (booking['acceptedOfferData'] != null) ...[
@@ -593,9 +598,9 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (offerData['offerType'] != null)
-                        _buildInfoRow('Offer Type', offerData['offerType'] == 'counter' ? 'Counter Offer' : 'Acceptance'),
+                        _buildInfoRow(t.offerType, offerData['offerType'] == 'counter' ? t.counterOffer : t.acceptance),
                       if (offerData['originalFare'] != null)
-                        _buildInfoRow('Original Fare', 'Rs. ${offerData['originalFare']}'),
+                        _buildInfoRow(t.originalFare, 'Rs. ${offerData['originalFare']}'),
                     ],
                   );
                 },
@@ -603,7 +608,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
             ],
             if (acceptedAt != null) ...[
               const SizedBox(height: 8),
-              _buildInfoRow('Accepted At', _formatDateTime(acceptedAt)),
+              _buildInfoRow(t.acceptedAt, _formatDateTime(acceptedAt)),
             ],
             // Show assigned drivers and vehicles if already assigned
             if (booking['assignedResources'] != null) ...[
@@ -679,9 +684,10 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                           children: assignments.asMap().entries.map((entry) {
                             final index = entry.key;
                             final assignment = entry.value;
-                            final driverName = assignment['driverName'] ?? 'N/A';
+                            final t = AppLocalizations.of(context)!;
+                            final driverName = assignment['driverName'] ?? t.nA;
                             final vehicleInfoRaw = assignment['vehicleInfo'];
-                            String vehicleInfo = 'N/A';
+                            String vehicleInfo = t.nA;
                             
                             if (vehicleInfoRaw != null && vehicleInfoRaw is Map) {
                               final vehicleData = Map<String, dynamic>.from(vehicleInfoRaw);
@@ -689,8 +695,13 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                               final registration = vehicleData['registrationNumber'] ?? '';
                               vehicleInfo = makeModel.isNotEmpty 
                                 ? '$makeModel${registration.isNotEmpty ? ' ($registration)' : ''}'
-                                : 'N/A';
+                                : t.nA;
                             }
+                            
+                            final assignmentStatus = assignment['status'] as String? ?? 'pending';
+                            final isPending = assignmentStatus == 'pending';
+                            final isAccepted = assignmentStatus == 'accepted';
+                            final isRejected = assignmentStatus == 'rejected';
                             
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 8),
@@ -699,21 +710,60 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: isPending
+                                        ? Colors.orange.withOpacity(0.5)
+                                        : isAccepted
+                                            ? Colors.green.withOpacity(0.5)
+                                            : Colors.red.withOpacity(0.5),
+                                    width: 1,
+                                  ),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Vehicle ${index + 1}:',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                        color: Colors.white,
-                                      ),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          '${t.vehicle} ${index + 1}:',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isPending
+                                                ? Colors.orange
+                                                : isAccepted
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            isPending
+                                                ? t.pending
+                                                : isAccepted
+                                                    ? t.accepted
+                                                    : t.rejected,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: 4),
-                                    _buildInfoRow('Driver', driverName),
-                                    _buildInfoRow('Vehicle', vehicleInfo),
+                                    _buildInfoRow(t.driver, driverName),
+                                    _buildInfoRow(t.vehicle, vehicleInfo),
                                   ],
                                 ),
                               ),
@@ -729,8 +779,8 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
             // Show locations if available
             if (booking['pickupLocation'] != null && booking['destinationLocation'] != null) ...[
               const SizedBox(height: 12),
-              _buildInfoRow(t.pickupLocation, booking['pickupLocation'] ?? 'N/A'),
-              _buildInfoRow(t.destinationLocation, booking['destinationLocation'] ?? 'N/A'),
+              _buildInfoRow(t.pickupLocation, booking['pickupLocation'] ?? t.nA),
+              _buildInfoRow(t.destinationLocation, booking['destinationLocation'] ?? t.nA),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
@@ -759,14 +809,107 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
             Builder(
               builder: (context) {
                 final quantity = booking['quantity'] as int? ?? 1;
-                final assignedResources = booking['assignedResources'];
-                final assignedCount = assignedResources != null && assignedResources is Map 
-                    ? assignedResources.length 
-                    : 0;
+                final assignedResourcesRaw = booking['assignedResources'];
+                
+                // Handle both Map and List types
+                Map<String, dynamic> assignedResourcesMap = {};
+                if (assignedResourcesRaw != null) {
+                  if (assignedResourcesRaw is Map) {
+                    assignedResourcesMap = Map<String, dynamic>.from(assignedResourcesRaw);
+                  } else if (assignedResourcesRaw is List) {
+                    // Convert List to Map with index as key
+                    for (int i = 0; i < assignedResourcesRaw.length; i++) {
+                      final item = assignedResourcesRaw[i];
+                      if (item != null && item is Map) {
+                        assignedResourcesMap[i.toString()] = Map<String, dynamic>.from(item);
+                      }
+                    }
+                  }
+                }
+                
+                final assignedCount = assignedResourcesMap.length;
+                
+                // Calculate assignment statuses
+                int pendingCount = 0;
+                int acceptedCount = 0;
+                int rejectedCount = 0;
+                int journeyStartedCount = 0;
+                
+                for (final assignment in assignedResourcesMap.values) {
+                  if (assignment is Map) {
+                    final status = assignment['status'] as String? ?? 'pending';
+                    if (status == 'pending') {
+                      pendingCount++;
+                    } else if (status == 'accepted') {
+                      acceptedCount++;
+                      // Check if journey has started
+                      if (assignment['journeyStarted'] == true) {
+                        journeyStartedCount++;
+                      }
+                    } else if (status == 'rejected') {
+                      rejectedCount++;
+                    }
+                  }
+                }
+                
+                final allAccepted = assignedCount == quantity && acceptedCount == quantity && rejectedCount == 0;
+                final hasRejected = rejectedCount > 0;
+                final hasJourneyStarted = journeyStartedCount > 0;
                 
                 return Column(
                   children: [
                     const SizedBox(height: 16),
+                    // Show warning if there are rejected assignments
+                    if (hasRejected) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red, width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.warning, color: Colors.red, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '$rejectedCount driver${rejectedCount > 1 ? 's' : ''} ${t.rejected} the assignment. Please assign another driver${rejectedCount > 1 ? 's' : ''}.',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Show notify customer button only when all have accepted
+                    if (allAccepted && assignedCount > 0) ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.notifications_active, color: Colors.white),
+                          label: Text(
+                            t.notifyCustomer,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          onPressed: () => _askToNotifyCustomer(
+                            booking['requestId'] as String,
+                            booking['customerId'] as String? ?? '',
+                            acceptedCount,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     if (assignedCount < quantity)
                       SizedBox(
                         width: double.infinity,
@@ -774,8 +917,8 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                           icon: const Icon(Icons.assignment, color: Colors.white),
                           label: Text(
                             assignedCount == 0 
-                                ? 'Assign Drivers & Vehicles ($quantity required)'
-                                : 'Complete Assignment (${quantity - assignedCount} remaining)',
+                                ? t.assignDriversVehiclesRequired(quantity.toString())
+                                : t.completeAssignmentRemaining((quantity - assignedCount).toString()),
                             style: const TextStyle(color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -792,9 +935,9 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               icon: const Icon(Icons.edit, color: Colors.white),
-                              label: const Text(
-                                'Edit Assignment',
-                                style: TextStyle(color: Colors.white),
+                              label: Text(
+                                t.editAssignment,
+                                style: const TextStyle(color: Colors.white),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
@@ -804,21 +947,51 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          // Dispatch button - only show if status is 'accepted' and not already dispatched
-                          if (booking['status'] == 'accepted')
+                          // Dispatch button - only show if status is 'accepted' and all drivers have accepted their assignments
+                          if ((booking['status'] == 'accepted' || booking['status'] == 'in_progress') && allAccepted)
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
                                 icon: const Icon(Icons.local_shipping, color: Colors.white),
-                                label: const Text(
-                                  'Dispatch Booking',
-                                  style: TextStyle(color: Colors.white),
+                                label: Text(
+                                  t.dispatchBooking,
+                                  style: const TextStyle(color: Colors.white),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.green,
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                 ),
                                 onPressed: () => _dispatchBooking(booking),
+                              ),
+                            ),
+                          // View Driver Location button - show when at least one driver has started journey
+                          if (hasJourneyStarted && assignedResourcesMap.isNotEmpty)
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.location_on, color: Colors.white),
+                                label: Text(
+                                  t.driverLocation,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => EnterpriseDriversLiveLocationMap(
+                                        requestId: booking['requestId'] ?? '',
+                                        assignedResources: assignedResourcesMap,
+                                        pickupLocation: booking['pickupLocation'] ?? '',
+                                        destinationLocation: booking['destinationLocation'] ?? '',
+                                        loadName: booking['loadName'] ?? '',
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                         ],
@@ -888,22 +1061,23 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
       case 'general':
         return t.generalGoods;
       default:
-        return loadType ?? 'N/A';
+        return loadType ?? t.nA;
     }
   }
 
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
+    final t = AppLocalizations.of(context)!;
     
     if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return '${difference.inDays} ${difference.inDays == 1 ? t.dayAgo : t.daysAgo}';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return '${difference.inHours} ${difference.inHours == 1 ? t.hourAgo : t.hoursAgo}';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return '${difference.inMinutes} ${difference.inMinutes == 1 ? t.minuteAgo : t.minutesAgo}';
     } else {
-      return 'Just now';
+      return t.justNow;
     }
   }
 
@@ -941,6 +1115,12 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
           driverData['id'] = entry.key;
           return driverData;
         }).toList();
+        
+        // Filter out inactive drivers (only show active drivers)
+        drivers = drivers.where((driver) {
+          final status = driver['status'] as String?;
+          return status == null || status == 'active';
+        }).toList();
       }
 
       // Load vehicles and filter by vehicle type
@@ -953,6 +1133,12 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
           return vehicleData;
         }).toList();
         
+        // Filter out inactive vehicles (only show active vehicles)
+        vehicles = vehicles.where((vehicle) {
+          final status = vehicle['status'] as String?;
+          return status == null || status == 'active';
+        }).toList();
+        
         // Filter vehicles by vehicle type if specified
         if (vehicleType.isNotEmpty) {
           vehicles = vehicles.where((vehicle) {
@@ -963,20 +1149,22 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
         }
       }
     } catch (e) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading drivers/vehicles: $e')),
+        SnackBar(content: Text('${t.errorLoadingDriversVehicles} $e')),
       );
       return;
     }
 
     if (drivers.isEmpty || vehicles.isEmpty) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(drivers.isEmpty 
-            ? 'No drivers available. Please add drivers first.'
+            ? t.noActiveDriversAvailable
             : vehicleType.isNotEmpty
-                ? 'No vehicles of type "$vehicleType" available. Please add matching vehicles first.'
-                : 'No vehicles available. Please add vehicles first.'),
+                ? t.noActiveVehiclesOfTypeAvailable(vehicleType)
+                : t.noActiveVehiclesAvailable),
         ),
       );
       return;
@@ -1046,20 +1234,30 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
 
     // Filter out already assigned drivers/vehicles (only if not editing)
     // When editing, show all so they can be changed
-    final availableDrivers = isEdit 
+    // But always filter to only show active drivers/vehicles for new assignments
+    final availableDrivers = (isEdit 
         ? drivers 
-        : drivers.where((d) => !assignedDriverIds.contains(d['id'])).toList();
-    final availableVehicles = isEdit 
+        : drivers.where((d) => !assignedDriverIds.contains(d['id'])).toList())
+        .where((d) {
+          final status = d['status'] as String?;
+          return status == null || status == 'active';
+        }).toList();
+    final availableVehicles = (isEdit 
         ? vehicles 
-        : vehicles.where((v) => !assignedVehicleIds.contains(v['id'])).toList();
+        : vehicles.where((v) => !assignedVehicleIds.contains(v['id'])).toList())
+        .where((v) {
+          final status = v['status'] as String?;
+          return status == null || status == 'active';
+        }).toList();
 
     if (availableDrivers.length < remainingCount || availableVehicles.length < remainingCount) {
+      final t = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             availableDrivers.length < remainingCount
-                ? 'Not enough available drivers. Need $remainingCount, have ${availableDrivers.length}.'
-                : 'Not enough available vehicles. Need $remainingCount, have ${availableVehicles.length}.',
+                ? t.notEnoughAvailableDrivers(remainingCount.toString(), availableDrivers.length.toString())
+                : t.notEnoughAvailableVehicles(remainingCount.toString(), availableVehicles.length.toString()),
           ),
         ),
       );
@@ -1138,7 +1336,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          isEdit ? 'Edit Driver & Vehicle Assignment' : 'Assign Drivers & Vehicles',
+                          isEdit ? t.editDriverVehicleAssignment : t.assignDriversVehicles,
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1175,7 +1373,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'Only vehicles of type "$vehicleType" are shown',
+                                    t.onlyVehiclesOfTypeShown(vehicleType),
                                     style: TextStyle(
                                       color: Colors.teal.shade800,
                                       fontSize: 12,
@@ -1187,8 +1385,8 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                           ),
                         Text(
                           isEdit 
-                              ? 'Edit assignment for $quantity vehicle${quantity > 1 ? 's' : ''}:'
-                              : 'Assign $remainingCount driver${remainingCount > 1 ? 's' : ''} and vehicle${remainingCount > 1 ? 's' : ''}:',
+                              ? t.editAssignmentForVehicles(quantity.toString(), quantity > 1 ? 's' : '')
+                              : t.assignDriversAndVehicles(remainingCount.toString(), remainingCount > 1 ? 's' : '', remainingCount > 1 ? 's' : ''),
                           style: TextStyle(
                             color: Colors.teal.shade800,
                             fontWeight: FontWeight.w600,
@@ -1216,12 +1414,13 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                               (d) => d['id'] == driverId,
                               orElse: () => <String, dynamic>{},
                             );
+                            final t = AppLocalizations.of(context)!;
                             final driverName = driver['name'] ?? 
                                               driver['fullName'] ?? 
-                                              'Driver $driverId';
+                                              '${t.driver} $driverId';
                             final driverPhone = driver['phone'] ?? 
                                                driver['phoneNumber'] ?? 
-                                               'N/A';
+                                               t.nA;
                             return DropdownMenuItem<String>(
                               value: driverId,
                               child: Text(
@@ -1278,7 +1477,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Vehicle ${assignmentIndex + 1}:',
+                                  '${t.vehicle} ${assignmentIndex + 1}:',
                                   style: TextStyle(
                                     color: Colors.teal.shade800,
                                     fontWeight: FontWeight.bold,
@@ -1288,7 +1487,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                                 const SizedBox(height: 12),
                                 // Driver dropdown
                                 Text(
-                                  'Driver:',
+                                  '${t.driver}:',
                                   style: TextStyle(
                                     color: Colors.teal.shade800,
                                     fontWeight: FontWeight.w600,
@@ -1304,7 +1503,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                                   child: DropdownButton<String>(
                                     isExpanded: true,
                                     value: validDriverId,
-                                    hint: const Text('Choose a driver'),
+                                    hint: Text(t.chooseDriver),
                                     padding: const EdgeInsets.symmetric(horizontal: 12),
                                     items: driverItems,
                                     onChanged: (value) {
@@ -1317,7 +1516,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                                 const SizedBox(height: 12),
                                 // Vehicle dropdown
                                 Text(
-                                  'Vehicle:',
+                                  '${t.vehicle}:',
                                   style: TextStyle(
                                     color: Colors.teal.shade800,
                                     fontWeight: FontWeight.w600,
@@ -1333,7 +1532,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                                   child: DropdownButton<String>(
                                     isExpanded: true,
                                     value: validVehicleId,
-                                    hint: const Text('Choose a vehicle'),
+                                    hint: Text(t.chooseVehicle),
                                     padding: const EdgeInsets.symmetric(horizontal: 12),
                                     items: vehicleItems,
                                     onChanged: (value) {
@@ -1385,8 +1584,8 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                             Navigator.pop(context, assignments);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please select driver and vehicle for all assignments'),
+                              SnackBar(
+                                content: Text(t.pleaseSelectDriverAndVehicleForAllAssignments),
                                 backgroundColor: Colors.orange,
                               ),
                             );
@@ -1396,7 +1595,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
                           backgroundColor: Colors.teal.shade800,
                           foregroundColor: Colors.white,
                         ),
-                        child: Text(isEdit ? 'Update Assignment' : 'Assign All'),
+                        child: Text(isEdit ? t.updateAssignment : t.assignAll),
                       ),
                     ],
                   ),
@@ -1463,15 +1662,104 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
           final driverData = Map<String, dynamic>.from(driverSnapshot.value as Map);
           final vehicleData = Map<String, dynamic>.from(vehicleSnapshot.value as Map);
           
+          // Validate that driver and vehicle are active
+          final driverStatus = driverData['status'] as String?;
+          final vehicleStatus = vehicleData['status'] as String?;
+          
+          if (driverStatus != null && driverStatus != 'active') {
+            if (mounted) {
+              final t = AppLocalizations.of(context)!;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${t.cannotAssignInactiveDriver} ${driverData['name'] ?? driverData['fullName'] ?? t.driver}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            continue; // Skip this assignment
+          }
+          
+          if (vehicleStatus != null && vehicleStatus != 'active') {
+            if (mounted) {
+              final t = AppLocalizations.of(context)!;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${t.cannotAssignInactiveVehicle} ${vehicleData['makeModel'] ?? vehicleData['registrationNumber'] ?? t.vehicle}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+            continue; // Skip this assignment
+          }
+          
+          // Get driver's auth UID if available
+          final driverAuthUid = driverData['authUid'] as String?;
+          
           newResources[index] = {
             'driverId': driverId,
-            'driverName': driverData['name'] ?? driverData['fullName'] ?? 'Driver',
+            'driverName': driverData['name'] ?? driverData['fullName'] ?? AppLocalizations.of(context)!.driver,
             'driverPhone': driverData['phone'] ?? driverData['phoneNumber'],
             'vehicleId': vehicleId,
             'vehicleInfo': vehicleData,
             'assignedAt': DateTime.now().millisecondsSinceEpoch,
             'assignedBy': user.uid,
+            'status': 'pending', // pending, accepted, rejected
+            'driverAuthUid': driverAuthUid, // For notifications
           };
+          
+          // Create notification for enterprise driver if auth UID exists
+          if (driverAuthUid != null) {
+            try {
+              final requestSnapshot = await _db.child('requests/$requestId').get();
+              final t = AppLocalizations.of(context)!;
+              String loadName = t.booking;
+              String pickupLocation = '';
+              String destinationLocation = '';
+              
+              if (requestSnapshot.exists) {
+                final requestData = Map<String, dynamic>.from(requestSnapshot.value as Map);
+                loadName = requestData['loadName'] as String? ?? t.booking;
+                pickupLocation = requestData['pickupLocation'] as String? ?? '';
+                destinationLocation = requestData['destinationLocation'] as String? ?? '';
+              }
+              
+              final assignmentNotificationRef = _db.child('enterprise_driver_assignments/$driverAuthUid').push();
+              final assignmentId = assignmentNotificationRef.key;
+              
+              if (assignmentId != null) {
+                await assignmentNotificationRef.set({
+                  'assignmentId': assignmentId,
+                  'requestId': requestId,
+                  'resourceIndex': index,
+                  'driverId': driverId,
+                  'vehicleId': vehicleId,
+                  'vehicleInfo': vehicleData,
+                  'loadName': loadName,
+                  'pickupLocation': pickupLocation,
+                  'destinationLocation': destinationLocation,
+                  'status': 'pending',
+                  'assignedAt': DateTime.now().millisecondsSinceEpoch,
+                  'assignedBy': user.uid,
+                  'enterpriseId': user.uid,
+                  'isRead': false,
+                });
+                
+                // Also create a notification in driver_notifications
+                final driverNotificationRef = _db.child('driver_notifications/$driverAuthUid').push();
+                await driverNotificationRef.set({
+                  'type': 'assignment',
+                  'assignmentId': assignmentId,
+                  'requestId': requestId,
+                  'message': '${AppLocalizations.of(context)!.newAssignments}: $loadName ${AppLocalizations.of(context)!.from} $pickupLocation ${AppLocalizations.of(context)!.to} $destinationLocation',
+                  'timestamp': DateTime.now().millisecondsSinceEpoch,
+                  'isRead': false,
+                });
+              }
+            } catch (e) {
+              print('Error creating driver notification: $e');
+              // Continue even if notification fails
+            }
+          }
         }
       }
 
@@ -1510,9 +1798,13 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
           : null;
 
       if (mounted) {
+        final t = AppLocalizations.of(context)!;
+        final count = assignments.length;
+        final driverPlural = count > 1 ? 's' : '';
+        final vehiclePlural = count > 1 ? 's' : '';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${assignments.length} driver${assignments.length > 1 ? 's' : ''} and vehicle${assignments.length > 1 ? 's' : ''} assigned successfully'),
+            content: Text(t.driversAndVehiclesAssignedSuccessfully(count.toString(), driverPlural, vehiclePlural)),
             backgroundColor: Colors.green,
           ),
         );
@@ -1520,15 +1812,11 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
 
       // Reload bookings to show the assignment
       await _loadAcceptedBookings();
-
-      // Ask if enterprise wants to notify customer
-      if (mounted && customerId != null) {
-        await _askToNotifyCustomer(requestId, customerId, assignments.length);
-      }
     } catch (e) {
       if (mounted) {
+        final t = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error assigning drivers/vehicles: $e')),
+          SnackBar(content: Text('${t.errorAssigningDriversVehicles} $e')),
         );
       }
     }
@@ -1540,6 +1828,105 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
     int assignmentCount,
   ) async {
     final t = AppLocalizations.of(context)!;
+    
+    // Verify that all assigned drivers have accepted before allowing notification
+    try {
+      final requestSnapshot = await _db.child('requests/$requestId').get();
+      if (!requestSnapshot.exists) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(t.errorRequestIdNotFound),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      final requestData = Map<String, dynamic>.from(requestSnapshot.value as Map);
+      final quantity = requestData['quantity'] as int? ?? 1;
+      final assignedResourcesRaw = requestData['assignedResources'];
+      
+      if (assignedResourcesRaw == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No drivers assigned yet'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+      
+      // Handle both Map and List types from Firebase
+      Map<String, dynamic> assignedResourcesMap = {};
+      if (assignedResourcesRaw is Map) {
+        assignedResourcesMap = Map<String, dynamic>.from(assignedResourcesRaw);
+      } else if (assignedResourcesRaw is List) {
+        // Convert List to Map with index as key
+        for (int i = 0; i < assignedResourcesRaw.length; i++) {
+          final item = assignedResourcesRaw[i];
+          if (item != null && item is Map) {
+            assignedResourcesMap[i.toString()] = Map<String, dynamic>.from(item);
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Invalid assignedResources format'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      int acceptedCount = 0;
+      int pendingCount = 0;
+      int rejectedCount = 0;
+      
+      for (final assignment in assignedResourcesMap.values) {
+        if (assignment is Map) {
+          final status = assignment['status'] as String? ?? 'pending';
+          if (status == 'accepted') {
+            acceptedCount++;
+          } else if (status == 'pending') {
+            pendingCount++;
+          } else if (status == 'rejected') {
+            rejectedCount++;
+          }
+        }
+      }
+      
+      // Check if all required assignments are accepted
+      if (acceptedCount < quantity || rejectedCount > 0 || pendingCount > 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Cannot notify customer yet. $acceptedCount of $quantity driver${quantity > 1 ? 's' : ''} accepted. ${pendingCount > 0 ? '$pendingCount pending. ' : ''}${rejectedCount > 0 ? '$rejectedCount rejected. Please reassign.' : ''}',
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error verifying assignment status: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
     
     final shouldNotify = await showDialog<bool>(
       context: context,
@@ -1554,7 +1941,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
             Icon(Icons.notifications_active, color: Colors.teal.shade800),
             const SizedBox(width: 8),
             Text(
-              'Notify Customer?',
+              t.notifyCustomer,
               style: TextStyle(
                 color: Colors.teal.shade800,
                 fontWeight: FontWeight.bold,
@@ -1563,7 +1950,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
           ],
         ),
         content: Text(
-          'Do you want to notify the customer that $assignmentCount vehicle${assignmentCount > 1 ? 's' : ''} and driver${assignmentCount > 1 ? 's' : ''} have been assigned to their cargo?',
+          t.doYouWantToNotifyCustomer(assignmentCount.toString(), assignmentCount > 1 ? 's' : '', assignmentCount > 1 ? 's' : ''),
           style: const TextStyle(fontSize: 16),
         ),
         actions: [
@@ -1572,7 +1959,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
             style: TextButton.styleFrom(
               foregroundColor: Colors.grey.shade700,
             ),
-            child: const Text('No'),
+            child: Text(t.no),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -1580,7 +1967,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
               backgroundColor: Colors.teal.shade800,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Yes, Notify'),
+            child: Text(t.yesNotify),
           ),
         ],
       ),
@@ -1603,34 +1990,38 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
       if (notificationId == null) return;
 
       // Get request details for the notification message
+      final t = AppLocalizations.of(context)!;
       final requestSnapshot = await _db.child('requests/$requestId').get();
-      String loadName = 'your cargo';
+      String loadName = t.yourCargo;
       if (requestSnapshot.exists) {
         final requestData = Map<String, dynamic>.from(requestSnapshot.value as Map);
-        loadName = requestData['loadName'] as String? ?? 'your cargo';
+        loadName = requestData['loadName'] as String? ?? t.yourCargo;
       }
 
+      final vehiclePlural = assignmentCount > 1 ? 's' : '';
+      final driverPlural = assignmentCount > 1 ? 's' : '';
       await notificationRef.set({
         'type': 'resources_assigned',
         'requestId': requestId,
-        'message': '$assignmentCount vehicle${assignmentCount > 1 ? 's' : ''} and driver${assignmentCount > 1 ? 's' : ''} have been assigned to $loadName',
+        'message': t.vehiclesAndDriversAssignedToCargo(assignmentCount.toString(), vehiclePlural, driverPlural, loadName),
         'timestamp': DateTime.now().millisecondsSinceEpoch,
         'isRead': false,
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Customer has been notified'),
+          SnackBar(
+            content: Text(t.customerHasBeenNotified),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        final t = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error sending notification: $e'),
+            content: Text('${t.errorSendingNotification} $e'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -1715,11 +2106,12 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
       await _db.child('customer_offers/$requestId').remove();
 
       // Notify customer about cancellation
+      final t = AppLocalizations.of(context)!;
       if (customerId != null) {
         await _db.child('customer_notifications/$customerId').push().set({
           'type': 'request_cancelled',
           'requestId': requestId,
-          'message': 'Enterprise cancelled the booking',
+          'message': t.enterpriseCancelledBooking,
           'timestamp': DateTime.now().millisecondsSinceEpoch,
           'isRead': false,
         });
@@ -1727,24 +2119,40 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
 
       // Notify assigned drivers if any
       final assignedResourcesRaw = booking['assignedResources'];
-      if (assignedResourcesRaw != null && assignedResourcesRaw is Map) {
-        final assignedResources = Map<String, dynamic>.from(assignedResourcesRaw);
+      if (assignedResourcesRaw != null) {
+        Map<String, dynamic> assignedResources = {};
+        if (assignedResourcesRaw is Map) {
+          assignedResources = Map<String, dynamic>.from(assignedResourcesRaw);
+        } else if (assignedResourcesRaw is List) {
+          // Convert List to Map with index as key
+          for (int i = 0; i < assignedResourcesRaw.length; i++) {
+            final item = assignedResourcesRaw[i];
+            if (item != null && item is Map) {
+              assignedResources[i.toString()] = Map<String, dynamic>.from(item);
+            }
+          }
+        }
+        
         for (final assignment in assignedResources.values) {
           if (assignment is Map) {
             final assignmentData = Map<String, dynamic>.from(assignment);
+            // Use driverAuthUid if available (for enterprise drivers), otherwise fall back to driverId
+            final driverAuthUid = assignmentData['driverAuthUid'] as String?;
             final driverId = assignmentData['driverId'] as String?;
-            if (driverId != null) {
+            final notificationDriverId = driverAuthUid ?? driverId;
+            
+            if (notificationDriverId != null) {
               try {
-                await _db.child('driver_notifications/$driverId').push().set({
+                await _db.child('driver_notifications/$notificationDriverId').push().set({
                   'type': 'request_cancelled',
                   'requestId': requestId,
-                  'message': 'Enterprise cancelled the booking',
+                  'message': t.enterpriseCancelledBooking,
                   'timestamp': DateTime.now().millisecondsSinceEpoch,
                   'isRead': false,
                 });
               } catch (e) {
                 // Ignore errors for individual driver notifications
-                print('Error notifying driver $driverId: $e');
+                print('Error notifying driver $notificationDriverId: $e');
               }
             }
           }
@@ -1764,9 +2172,10 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
       await _loadAcceptedBookings();
     } catch (e) {
       if (mounted) {
+        final t = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error cancelling booking: $e'),
+            content: Text('${t.errorCancellingBooking} $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1780,8 +2189,8 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
     
     if (requestId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: Request ID not found'),
+        SnackBar(
+          content: Text(t.errorRequestIdNotFound),
           backgroundColor: Colors.red,
         ),
       );
@@ -1791,15 +2200,83 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
     // Check if all vehicles are assigned
     final quantity = booking['quantity'] as int? ?? 1;
     final assignedResourcesRaw = booking['assignedResources'];
-    final assignedCount = assignedResourcesRaw != null && assignedResourcesRaw is Map 
-        ? assignedResourcesRaw.length 
-        : 0;
+    
+    // Handle both Map and List types from Firebase
+    Map<String, dynamic> assignedResources = {};
+    if (assignedResourcesRaw != null) {
+      if (assignedResourcesRaw is Map) {
+        assignedResources = Map<String, dynamic>.from(assignedResourcesRaw);
+      } else if (assignedResourcesRaw is List) {
+        // Convert List to Map with index as key
+        for (int i = 0; i < assignedResourcesRaw.length; i++) {
+          final item = assignedResourcesRaw[i];
+          if (item != null && item is Map) {
+            assignedResources[i.toString()] = Map<String, dynamic>.from(item);
+          }
+        }
+      }
+    }
+    
+    final assignedCount = assignedResources.length;
     
     if (assignedCount < quantity) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please assign all $quantity vehicle${quantity > 1 ? 's' : ''} before dispatching'),
+          content: Text(t.pleaseAssignAllVehiclesBeforeDispatching(quantity.toString(), quantity > 1 ? 's' : '')),
           backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    // Check if all assigned drivers have accepted their assignments
+    int acceptedCount = 0;
+    int pendingCount = 0;
+    int rejectedCount = 0;
+    for (final assignment in assignedResources.values) {
+      if (assignment is Map) {
+        final assignmentData = Map<String, dynamic>.from(assignment);
+        final status = assignmentData['status'] as String? ?? 'pending';
+        if (status == 'accepted') {
+          acceptedCount++;
+        } else if (status == 'pending') {
+          pendingCount++;
+        } else if (status == 'rejected') {
+          rejectedCount++;
+        }
+      }
+    }
+    
+    // All drivers must have accepted before dispatch
+    if (acceptedCount < assignedCount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t.pleaseWaitForAllDriversToAccept(acceptedCount.toString(), assignedCount.toString())),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+    
+    // Check if all accepted drivers have started their journey
+    int startedCount = 0;
+    for (final assignment in assignedResources.values) {
+      if (assignment is Map) {
+        final assignmentData = Map<String, dynamic>.from(assignment);
+        final status = assignmentData['status'] as String?;
+        if (status == 'accepted' && assignmentData['journeyStarted'] == true) {
+          startedCount++;
+        }
+      }
+    }
+    
+    if (acceptedCount > 0 && startedCount < acceptedCount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t.pleaseWaitForAllDriversToStartJourney(startedCount.toString(), acceptedCount.toString())),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
         ),
       );
       return;
@@ -1819,7 +2296,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
             Icon(Icons.local_shipping, color: Colors.green.shade800),
             const SizedBox(width: 8),
             Text(
-              'Dispatch Booking',
+              t.dispatchBooking,
               style: TextStyle(
                 color: Colors.green.shade800,
                 fontWeight: FontWeight.bold,
@@ -1827,9 +2304,9 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
             ),
           ],
         ),
-        content: const Text(
-          'Are you sure you want to dispatch this booking? The customer will be notified.',
-          style: TextStyle(fontSize: 16),
+        content: Text(
+          t.areYouSureDispatchBooking,
+          style: const TextStyle(fontSize: 16),
         ),
         actions: [
           TextButton(
@@ -1845,7 +2322,7 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
               backgroundColor: Colors.green.shade800,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Dispatch'),
+            child: Text(t.dispatch),
           ),
         ],
       ),
@@ -1865,37 +2342,38 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
       });
 
       // Notify customer about dispatch
+      final t = AppLocalizations.of(context)!;
       if (customerId != null) {
-        final loadName = booking['loadName'] as String? ?? 'your cargo';
+        final loadName = booking['loadName'] as String? ?? t.yourCargo;
         await _db.child('customer_notifications/$customerId').push().set({
           'type': 'booking_dispatched',
           'requestId': requestId,
-          'message': 'Your booking for "$loadName" has been dispatched',
+          'message': t.yourBookingHasBeenDispatched(loadName),
           'timestamp': DateTime.now().millisecondsSinceEpoch,
           'isRead': false,
         });
       }
 
-      // Notify assigned drivers if any
-      final assignedResourcesRaw = booking['assignedResources'];
-      if (assignedResourcesRaw != null && assignedResourcesRaw is Map) {
-        final assignedResources = Map<String, dynamic>.from(assignedResourcesRaw);
-        for (final assignment in assignedResources.values) {
+      // Notify assigned enterprise drivers if any
+      final assignedResourcesForNotification = booking['assignedResources'];
+      if (assignedResourcesForNotification != null && assignedResourcesForNotification is Map) {
+        final assignedResourcesMap = Map<String, dynamic>.from(assignedResourcesForNotification);
+        for (final assignment in assignedResourcesMap.values) {
           if (assignment is Map) {
             final assignmentData = Map<String, dynamic>.from(assignment);
-            final driverId = assignmentData['driverId'] as String?;
-            if (driverId != null) {
+            final driverAuthUid = assignmentData['driverAuthUid'] as String?;
+            if (driverAuthUid != null) {
               try {
-                await _db.child('driver_notifications/$driverId').push().set({
+                await _db.child('driver_notifications/$driverAuthUid').push().set({
                   'type': 'booking_dispatched',
                   'requestId': requestId,
-                  'message': 'A booking has been dispatched to you',
+                  'message': t.bookingHasBeenDispatched,
                   'timestamp': DateTime.now().millisecondsSinceEpoch,
                   'isRead': false,
                 });
               } catch (e) {
                 // Ignore errors for individual driver notifications
-                print('Error notifying driver $driverId: $e');
+                print('Error notifying driver $driverAuthUid: $e');
               }
             }
           }
@@ -1904,8 +2382,8 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Booking dispatched successfully'),
+          SnackBar(
+            content: Text(t.bookingDispatchedSuccessfully),
             backgroundColor: Colors.green,
           ),
         );
@@ -1915,9 +2393,10 @@ class _EnterpriseBookingsScreenState extends State<EnterpriseBookingsScreen> {
       await _loadAcceptedBookings();
     } catch (e) {
       if (mounted) {
+        final t = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error dispatching booking: $e'),
+            content: Text('${t.errorDispatchingBooking} $e'),
             backgroundColor: Colors.red,
           ),
         );

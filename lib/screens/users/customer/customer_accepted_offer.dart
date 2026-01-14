@@ -284,7 +284,7 @@ class _CustomerAcceptedOfferScreenState extends State<CustomerAcceptedOfferScree
                               _buildInfoRow(t.phoneNumber, _driverData!['phone'] ?? 'N/A'),
                               if (_vehicleData != null) ...[
                                 _buildInfoRow(t.vehicleName, _vehicleData!['makeModel'] ?? 'N/A'),
-                                _buildInfoRow(t.vehicleNumber, _vehicleData!['registrationNumber'] ?? 'N/A'),
+                                _buildInfoRow('Vehicle Number', _vehicleData!['registrationNumber'] ?? 'N/A'),
                                 _buildInfoRow(t.vehicleType, _vehicleData!['type'] ?? 'N/A'),
                               ],
                             ],

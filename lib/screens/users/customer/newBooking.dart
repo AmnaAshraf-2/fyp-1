@@ -19,6 +19,7 @@ class _NewBookingsScreenState extends State<NewBookingsScreen> {
   bool _isLoading = true;
   String _languageCode = 'en';
   String? _errorMessage;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _NewBookingsScreenState extends State<NewBookingsScreen> {
   @override
   void dispose() {
     localeNotifier?.removeListener(_onLocaleChanged);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -138,108 +140,152 @@ class _NewBookingsScreenState extends State<NewBookingsScreen> {
                     ),
                   ),
                 )
-              : RefreshIndicator(
-                  onRefresh: _loadVehicles,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+              : Scrollbar(
+                  controller: _scrollController,
+                  thumbVisibility: true,
+                  child: RefreshIndicator(
+                    onRefresh: _loadVehicles,
                     child: ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      physics: const AlwaysScrollableScrollPhysics(),
                       itemCount: _vehicles.length,
                       itemBuilder: (context, index) {
                         final vehicle = _vehicles[index];
-            final color = Colors.teal;
+                        final color = Colors.teal;
+                        
+                        // Debug: Print vehicle image info
+                        debugPrint('🚚 Vehicle: ${vehicle.nameKey}, Image: ${vehicle.image}');
 
-            return GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/cargo-details',
-                  arguments: vehicle,
-                );
-              },
-
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOut,
-                margin: const EdgeInsets.only(bottom: 18),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.8),
-                      Colors.white.withOpacity(0.4),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  border: Border.all(
-                    color: Colors.teal.withOpacity(0.3),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.teal.withOpacity(0.15),
-                      blurRadius: 12,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
-                ),
-
-                child: Row(
-                  children: [
-                    // Circular Icon Holder
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: color.withOpacity(0.15),
-                      ),
-                      child: Icon(
-                        Icons.local_shipping,
-                        size: 32,
-                        color: color,
-                      ),
-                    ),
-
-                    const SizedBox(width: 18),
-
-                    // Text Section
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            vehicle.getName(_languageCode),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF003d3d),
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/cargo-details',
+                              arguments: vehicle,
+                            );
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                            margin: const EdgeInsets.only(bottom: 18),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.white.withOpacity(0.8),
+                                  Colors.white.withOpacity(0.4),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              border: Border.all(
+                                color: Colors.teal.withOpacity(0.3),
+                                width: 1.2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.teal.withOpacity(0.15),
+                                  blurRadius: 12,
+                                  offset: Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                // Vehicle Image or Icon Holder
+                                Builder(
+                                  builder: (context) {
+                                    final hasImage = vehicle.image != null && vehicle.image!.isNotEmpty;
+                                    
+                                    // Debug: print image path
+                                    if (hasImage) {
+                                      debugPrint('🖼️ Attempting to load vehicle image: ${vehicle.image}');
+                                    }
+                                    
+                                    return Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: color.withOpacity(0.15),
+                                        border: Border.all(
+                                          color: hasImage ? Colors.transparent : Colors.transparent,
+                                          width: 0,
+                                        ),
+                                      ),
+                                      child: hasImage
+                                          ? ClipOval(
+                                              clipBehavior: Clip.antiAlias,
+                                              child: Image.asset(
+                                                vehicle.image!,
+                                                key: ValueKey(vehicle.image), // Force rebuild if image changes
+                                                width: 60,
+                                                height: 60,
+                                                fit: BoxFit.cover,
+                                                gaplessPlayback: true, // Prevent flicker
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  // Debug: print error to console
+                                                  debugPrint('❌ Error loading vehicle image: ${vehicle.image}');
+                                                  debugPrint('Error type: ${error.runtimeType}');
+                                                  debugPrint('Error: $error');
+                                                  debugPrint('Stack trace: $stackTrace');
+                                                  // Fallback to icon if image fails to load
+                                                  return Container(
+                                                    width: 60,
+                                                    height: 60,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: color.withOpacity(0.15),
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.local_shipping,
+                                                      size: 32,
+                                                      color: color,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            )
+                                          : Icon(
+                                              Icons.local_shipping,
+                                              size: 32,
+                                              color: color,
+                                            ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 18),
+                                // Text Section
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        vehicle.getName(_languageCode),
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF003d3d),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        vehicle.getCapacity(_languageCode),
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Color(0xFF006666),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.teal),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 5),
-                          Text(
-                            vehicle.getCapacity(_languageCode),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF006666),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(width: 8),
-
-                    // Arrow icon
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 20,
-                      color: color,
-                    ),
-                  ],
-                ),
-              ),
-            );
+                        );
                       },
                     ),
                   ),

@@ -57,8 +57,9 @@ function Commission() {
 
         return bookings
             .filter(booking => {
-                // Only show completed bookings
-                if (booking.status !== 'completed') return false;
+                // Only show completed bookings - explicitly exclude accepted, cancelled, canceled, and any other statuses
+                const status = booking.status?.toLowerCase();
+                if (status !== 'completed') return false;
 
                 // Time range filter
                 if (timeRange !== 'all' && booking.timestamp < cutoff) return false;

@@ -109,7 +109,7 @@ class _LocationMapViewState extends State<LocationMapView> {
                   children: [
                     GoogleMap(
                       initialCameraPosition: CameraPosition(
-                        target: _location ?? const LatLng(33.6844, 73.0479), // Default to Islamabad
+                        target: _location ?? const LatLng(31.5204, 74.3587), // Default to Lahore
                         zoom: 15.0,
                       ),
                       markers: _location != null

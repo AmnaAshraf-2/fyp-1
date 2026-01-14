@@ -71,6 +71,7 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
 
   Future<void> _callCustomer() async {
     if (_customerData?['phone'] != null) {
+      final t = AppLocalizations.of(context)!;
       final phoneNumber = _customerData!['phone'].toString();
       final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
       
@@ -78,7 +79,7 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
         await launchUrl(phoneUri);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cannot make call to $phoneNumber')),
+          SnackBar(content: Text(t.cannotMakeCall(phoneNumber))),
         );
       }
     }
@@ -124,7 +125,7 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
           await _db.child('customer_notifications/$customerId').push().set({
             'type': 'request_cancelled',
             'requestId': widget.requestId,
-            'message': 'Driver cancelled the request',
+            'message': t.driverCancelledRequest,
             'timestamp': DateTime.now().millisecondsSinceEpoch,
           });
         }
@@ -136,7 +137,7 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
         Navigator.pop(context);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${t.error}: $e')),
         );
       }
     }
@@ -178,7 +179,7 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
           await _db.child('customer_notifications/$customerId').push().set({
             'type': 'journey_started',
             'requestId': widget.requestId,
-            'message': 'Driver has started the journey',
+            'message': t.driverHasStartedJourney,
             'timestamp': DateTime.now().millisecondsSinceEpoch,
           });
         }
@@ -260,9 +261,9 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              _buildInfoRow(t.customerName, _customerData!['name'] ?? 'N/A'),
-                              _buildInfoRow(t.phoneNumber, _customerData!['phone'] ?? 'N/A'),
-                              _buildInfoRow(t.email, _customerData!['email'] ?? 'N/A'),
+                              _buildInfoRow(t.customerName, _customerData!['name'] ?? t.nA),
+                              _buildInfoRow(t.phoneNumber, _customerData!['phone'] ?? t.nA),
+                              _buildInfoRow(t.email, _customerData!['email'] ?? t.nA),
                             ],
                           ),
                         ),
@@ -287,11 +288,11 @@ class _DriverAcceptedOfferScreenState extends State<DriverAcceptedOfferScreen> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              _buildInfoRow(t.load, _requestData!['loadName'] ?? 'N/A'),
-                              _buildInfoRow(t.type, _requestData!['loadType'] ?? 'N/A'),
+                              _buildInfoRow(t.load, _requestData!['loadName'] ?? t.nA),
+                              _buildInfoRow(t.type, _requestData!['loadType'] ?? t.nA),
                               _buildInfoRow(t.weight, '${_requestData!['weight']} ${_requestData!['weightUnit']}'),
                               _buildInfoRow(t.finalFare, 'Rs ${_requestData!['finalFare'] ?? _requestData!['offerFare']}'),
-                              _buildInfoRow(t.pickupTime, _requestData!['pickupTime'] ?? 'N/A'),
+                              _buildInfoRow(t.pickupTime, _requestData!['pickupTime'] ?? t.nA),
                             ],
                           ),
                         ),

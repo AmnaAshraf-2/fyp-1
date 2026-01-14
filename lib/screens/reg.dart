@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:logistics_app/phn_auth.dart';
 
 // Import Google Sign-In with conditional import for web
 import 'package:google_sign_in/google_sign_in.dart'
@@ -279,6 +280,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       builder: (context) {
         final loc = AppLocalizations.of(context);
         return AlertDialog(
+          backgroundColor: Colors.white,
           title: Text(loc != null ? 'Select Your Role' : 'Select Your Role'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -434,6 +436,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => isLoading = true);
       }
 
+      // Check if this email is already registered as an enterprise driver
+      final email = emailController.text.trim();
+      final pendingSnapshot = await FirebaseDatabase.instance
+          .ref('enterprise_drivers_pending')
+          .get();
+      
+      if (pendingSnapshot.exists) {
+        final pendingDrivers = pendingSnapshot.value as Map;
+        for (var entry in pendingDrivers.entries) {
+          final data = entry.value as Map?;
+          if (data?['email'] == email) {
+            Fluttertoast.showToast(
+              msg: "This email is registered as an enterprise driver. Please use the login page and check your email for password setup instructions.",
+              toastLength: Toast.LENGTH_LONG,
+            );
+            if (mounted) {
+              setState(() => isLoading = false);
+            }
+            return;
+          }
+        }
+      }
+
       final authResult =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
@@ -568,10 +593,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               _buildRegisterButton(),
                               const SizedBox(height: 30),
                               _buildLoginLink(),
-                              const SizedBox(height: 40),
+                              const SizedBox(height: 20),
                               _buildGoogleSignInButton(),
+                              const SizedBox(height: 15),
+                              _buildPhoneAuthButton(),
                               const SizedBox(height: 10),
-                              //  _buildPhoneAuthButton(),
                             ],
                           ),
                         ),
@@ -660,6 +686,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       textDirection: TextDirection.ltr,
       child: DropdownButtonFormField<String>(
         value: selectedRole,
+        dropdownColor: Colors.white,
         decoration: InputDecoration(
           labelText: 'Select Role',
           labelStyle: TextStyle(color: const Color(0xFF004d4d)),
@@ -914,7 +941,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildPhoneAuthButton() {
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
         backgroundColor: Colors.orange.shade700,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(
@@ -922,8 +949,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
       icon: const Icon(Icons.phone),
-      label: const Text('Continue with Phone'),
-      onPressed: _phoneSignIn,
+      label: const Text(
+        'Continue with Phone',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      onPressed: isLoading ? null : () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PhoneAuthScreen(isLogin: false),
+          ),
+        );
+      },
     );
   }
 }

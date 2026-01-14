@@ -422,6 +422,15 @@
   "fare": "کرایہ",
   "pleaseEnterFareAmount": "براہ کرم کرایہ کی رقم درج کریں",
   "pleaseEnterValidAmount": "براہ کرم درست رقم درج کریں",
+  "fareCannotBeZero": "کرایہ صفر نہیں ہو سکتا",
+  "fareBelowMinimum": "کرایہ کم از کم تجویز کردہ رقم سے کم نہیں ہو سکتا: روپے {minimumFare}",
+  "@fareBelowMinimum": {
+    "placeholders": {
+      "minimumFare": {
+        "type": "String"
+      }
+    }
+  },
   "contactsPermissionDenied": "رابطوں کی اجازت مسترد کر دی گئی",
   "exceedsCapacityNeed": "گنجائش سے زیادہ! ضرورت",
   "vehicles": "گاڑی(وں)",
@@ -534,6 +543,231 @@
       }
     }
   },
-  "pleaseSelectOrEnterLocation": "براہ کرم کوئی مقام منتخب کریں یا درج کریں"
+  "pleaseSelectOrEnterLocation": "براہ کرم کوئی مقام منتخب کریں یا درج کریں",
+  "notificationPreferences": "اطلاعات کی ترجیحات",
+  "notificationPreferencesDesc": "منتخب کریں کہ آپ اطلاعات کیسے حاصل کرنا چاہتے ہیں",
+  "emailNotifications": "ای میل اطلاعات",
+  "emailNotificationsDesc": "ای میل کے ذریعے اطلاعات حاصل کریں",
+  "smsNotifications": "ایس ایم ایس اطلاعات",
+  "smsNotificationsDesc": "ایس ایم ایس کے ذریعے اطلاعات حاصل کریں",
+  "inAppNotifications": "ایپ میں اطلاعات",
+  "inAppNotificationsDesc": "ایپ کے اندر اطلاعات حاصل کریں",
+  "preferencesSaved": "اطلاعات کی ترجیحات کامیابی سے محفوظ ہو گئیں",
+  "errorSavingPreferences": "اطلاعات کی ترجیحات محفوظ کرنے میں خرابی",
+  "errorLoadingPreferences": "ترجیحات لوڈ کرنے میں خرابی:",
+  
+  "newAssignments": "نئی تفویضات",
+  "noNewAssignments": "کوئی نئی تفویضات نہیں",
+  "rejected": "مسترد",
+  "from": "سے",
+  "to": "تک",
+  "vehicle": "گاڑی",
+  "assigned": "تفویض شدہ",
+  "assignmentAccepted": "تفویض قبول کر لی گئی",
+  "assignmentRejected": "تفویض مسترد کر دی گئی",
+  "errorRespondingToAssignment": "تفویض کا جواب دینے میں خرابی:",
+  "booking": "بکنگ",
+  "nA": "دستیاب نہیں",
+  "enterpriseDriver": "انٹرپرائز ڈرائیور",
+  
+  "setYourPassword": "اپنا پاس ورڈ سیٹ کریں",
+  "welcomeSetSecurePassword": "خوش آمدید! براہ کرم اپنے اکاؤنٹ کے لیے ایک محفوظ پاس ورڈ سیٹ کریں۔",
+  "pleaseEnterPassword": "براہ کرم پاس ورڈ درج کریں",
+  "pleaseConfirmPassword": "براہ کرم اپنے پاس ورڈ کی تصدیق کریں",
+  "enterYourPassword": "اپنا پاس ورڈ درج کریں",
+  "confirmYourPassword": "اپنے پاس ورڈ کی تصدیق کریں",
+  "settingUp": "سیٹ اپ ہو رہا ہے...",
+  "setPassword": "پاس ورڈ سیٹ کریں",
+  "passwordSetSuccessfully": "پاس ورڈ کامیابی سے سیٹ ہو گیا!",
+  "failedToSetPassword": "پاس ورڈ سیٹ کرنے میں ناکامی۔ براہ کرم دوبارہ کوشش کریں۔",
+  "passwordTooWeak": "پاس ورڈ بہت کمزور ہے۔ براہ کرم ایک مضبوط پاس ورڈ منتخب کریں۔",
+  "sessionExpiredSetPassword": "سیشن ختم ہو گیا۔ براہ کرم لاگ آؤٹ کریں اور دوبارہ لاگ ان کریں، پھر اپنا پاس ورڈ سیٹ کریں۔",
+  "emailMismatch": "ای میل میل نہیں کھاتی۔ براہ کرم صحیح اکاؤنٹ کے ساتھ لاگ ان کریں۔",
+  
+  "activeTrips": "فعال سفر",
+  "noActiveTrips": "کوئی فعال سفر نہیں",
+  "dispatchedBookingsWillAppearHere": "بھیجے گئے بکنگز یہاں ظاہر ہوں گی",
+  "inProgress": "جاری ہے",
+  "dispatched": "بھیجا گیا",
+  "dispatchedAt": "بھیجا گیا",
+  "assignedResources": "تفویض شدہ وسائل",
+  "markAsDelivered": "ڈیلیور شدہ کے طور پر نشان زد کریں",
+  "areYouSureMarkAsDelivered": "کیا آپ یقینی ہیں کہ یہ بکنگ ڈیلیور ہو گئی ہے؟ کسٹمر کو مطلع کیا جائے گا۔",
+  "bookingMarkedAsDeliveredSuccessfully": "بکنگ کامیابی سے ڈیلیور شدہ کے طور پر نشان زد کی گئی",
+  "errorMarkingAsDelivered": "ڈیلیور شدہ کے طور پر نشان زد کرنے میں خرابی:",
+  "errorRequestIdNotFound": "خرابی: درخواست آئی ڈی نہیں ملی",
+  "requestNotFound": "درخواست نہیں ملی",
+  "yourCargo": "آپ کا کارگو",
+  "yourBookingHasBeenDelivered": "آپ کی بکنگ \"{loadName}\" ڈیلیور ہو گئی ہے",
+  "@yourBookingHasBeenDelivered": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "yourBookingHasBeenDispatched": "آپ کی بکنگ \"{loadName}\" بھیج دی گئی ہے اور راستے میں ہے",
+  "@yourBookingHasBeenDispatched": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "bookingHasBeenDispatched": "بکنگ بھیج دی گئی ہے",
+  "deliveryCompletedForAssignedBooking": "تفویض شدہ بکنگ کے لیے ڈیلیوری مکمل ہو گئی",
+  "vehicle": "گاڑی",
+  "vehicleNumber": "گاڑی {number}",
+  "@vehicleNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "inactive": "غیر فعال",
+  "emailAlreadyRegisteredAsDriver": "یہ ای میل پہلے سے انٹرپرائز ڈرائیور کے طور پر رجسٹرڈ ہے۔",
+  "emailAlreadyRegisteredDifferentRole": "یہ ای میل پہلے سے مختلف کردار کے ساتھ رجسٹرڈ ہے۔",
+  "driverCanNowLoginToSetupAccount": "ڈرائیور اب اپنے ای میل سے لاگ ان کر کے اپنا اکاؤنٹ سیٹ اپ کر سکتا ہے۔",
+  "driverStatusChangedTo": "ڈرائیور کی حیثیت {status} میں تبدیل ہو گئی",
+  "@driverStatusChangedTo": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingDriverStatus": "ڈرائیور کی حیثیت اپ ڈیٹ کرنے میں خرابی:",
+  "searchDriversBy": "ڈرائیورز کو نام، فون، CNIC، یا لائسنس سے تلاش کریں...",
+  "noDriversFoundForSearch": "کوئی ڈرائیور نہیں ملا",
+  "tryDifferentSearchTerm": "مختلف تلاش کی اصطلاح آزمائیں",
+  "totalEarnings": "کل آمدنی",
+  "average": "اوسط",
+  "noEarningsYet": "ابھی تک کوئی آمدنی نہیں",
+  "earningsWillAppearHere": "بکنگز مکمل کرنے کے بعد آپ کی آمدنی یہاں ظاہر ہوگی",
+  "earningsHistory": "آمدنی کی تاریخ",
+  "earnings": "آمدنی",
+  "completed": "مکمل",
+  "newCustomerRequestsWillAppearHere": "نئے کسٹمر کے درخواستیں یہاں ظاہر ہوں گی",
+  "counterOfferLabel": "کاؤنٹر آفر:",
+  "audioNote": "آڈیو نوٹ",
+  "audioNoteOptional": "آڈیو نوٹ (اختیاری)",
+  "recordAudioNote": "آڈیو نوٹ ریکارڈ کریں",
+  "stopRecording": "ریکارڈنگ بند کریں",
+  "failedToStartRecording": "ریکارڈنگ شروع کرنے میں ناکامی۔ براہ کرم مائیکروفون کی اجازتیں چیک کریں۔",
+  "uploadingAudioNote": "آڈیو نوٹ اپ لوڈ ہو رہا ہے...",
+  "audioNoteUploadedSuccessfully": "آڈیو نوٹ کامیابی سے اپ لوڈ ہو گیا!",
+  "errorUploadingAudio": "آڈیو اپ لوڈ کرنے میں خرابی: {error}",
+  "@errorUploadingAudio": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "upload": "اپ لوڈ",
+  "audioNoteAttached": "آڈیو نوٹ منسلک",
+  "remove": "ہٹائیں",
+  "tapToPlayCustomerAudioNote": "کسٹمر کا آڈیو نوٹ چلانے کے لیے ٹیپ کریں",
+  "pause": "روکیں",
+  "play": "چلائیں",
+  "errorPlayingAudio": "آڈیو چلانے میں خرابی: {error}",
+  "@errorPlayingAudio": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noCompletedBookingsYet": "ابھی تک کوئی مکمل بکنگز نہیں",
+  "completedBookingHistoryWillAppearHere": "آپ کی مکمل بکنگ کی تاریخ یہاں ظاہر ہوگی",
+  "delivered": "ڈیلیور شدہ",
+  "customerId": "کسٹمر ID",
+  "deliveredAt": "ڈیلیور کیا گیا",
+  "enterpriseProfileAndSettingsWillAppearHere": "انٹرپرائز پروفائل اور ترتیبات یہاں ظاہر ہوں گی",
+  "loading": "لوڈ ہو رہا ہے...",
+  "noVehiclesFoundForSearch": "کوئی گاڑی نہیں ملی",
+  "searchVehiclesBy": "گاڑیوں کو بنانے، رجسٹریشن، قسم، یا رنگ سے تلاش کریں...",
+  "vehicleStatusChangedTo": "گاڑی کی حیثیت {status} میں تبدیل ہو گئی",
+  "@vehicleStatusChangedTo": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingVehicleStatus": "گاڑی کی حیثیت اپ ڈیٹ کرنے میں خرابی:",
+  "driverCancelledRequest": "ڈرائیور نے درخواست منسوخ کر دی",
+  "driverHasStartedJourney": "ڈرائیور نے سفر شروع کر دیا",
+  "trips": "سفر",
+  "revenue": "آمدنی",
+  "commission": "کمیشن",
+  "loadingEarnings": "آمدنی لوڈ ہو رہی ہے...",
+  "earningsWillAppearAfterTrips": "سفر مکمل کرنے کے بعد آپ کی آمدنی یہاں ظاہر ہوگی",
+  "trip": "سفر",
+  "customerPhoneNumberNotAvailable": "کسٹمر کا فون نمبر دستیاب نہیں",
+  "errorCallingCustomer": "کسٹمر کو کال کرنے میں خرابی:",
+  "noActiveTrip": "کوئی فعال سفر نہیں",
+  "startJourneyFromUpcomingTrips": "آنے والے سفر سے سفر شروع کریں",
+  "journeyInProgress": "سفر جاری ہے",
+  "started": "شروع کیا:",
+  "senderPhone": "بھیجنے والے کا فون",
+  "receiverPhone": "وصول کنندہ کا فون",
+  "viewDirectionsOnMap": "نقشے پر ہدایات دیکھیں",
+  "yourCargoHasBeenDeliveredSuccessfully": "آپ کا کارگو کامیابی سے ڈیلیور کر دیا گیا",
+  "pleaseWaitForAllDriversToCompleteJourney": "براہ کرم تمام ڈرائیورز کے سفر مکمل ہونے کا انتظار کریں اس سے پہلے کہ آپ اسے ڈیلیورڈ کے طور پر نشان زد کریں۔",
+  "allDriversHaveCompletedJourney": "تمام ڈرائیورز نے سفر مکمل کر لیا ہے",
+  "statusAccepted": "قبول شدہ",
+  "statusDispatched": "بھیجا گیا",
+  "statusInProgress": "جاری ہے",
+  "contactEnterprise": "ادارہ",
+  "pickupLabel": "اٹھانے",
+  "fareLabel": "کرایہ",
+  "enterpriseContactNotAvailable": "ادارہ کا رابطہ نمبر دستیاب نہیں",
+  "errorContactingEnterprise": "ادارہ سے رابطہ کرنے میں خرابی",
+  "errorCancellingRequest": "درخواست منسوخ کرنے میں خرابی",
+  "notification": "اطلاع",
+  "driverDetails": "ڈرائیور کی تفصیلات",
+  "plateNumber": "پلیٹ نمبر",
+  "destination": "منزل",
+  "allDriversStartedCanMarkDispatched": "{loadName} کے لیے تمام ڈرائیورز نے سفر شروع کر دیا ہے۔ آپ اب اسے بھیجے گئے کے طور پر نشان زد کر سکتے ہیں۔",
+  "@allDriversStartedCanMarkDispatched": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "cargoInTransit": "آپ کا کارگو اب ٹرانزٹ میں ہے",
+  "driverAcceptedAssignment": "{driverName} نے {loadName} کے لیے تفویض قبول کر لی",
+  "@driverAcceptedAssignment": {
+    "placeholders": {
+      "driverName": {
+        "type": "String"
+      },
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "driverRejectedAssignment": "{driverName} نے {loadName} کے لیے تفویض مسترد کر دی",
+  "@driverRejectedAssignment": {
+    "placeholders": {
+      "driverName": {
+        "type": "String"
+      },
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "allDriversVehiclesAssignedReady": "{loadName} کے لیے تمام ڈرائیورز اور گاڑیاں تفویض اور قبول کر لی گئی ہیں۔ آپ کی بکنگ تیار ہے!",
+  "@allDriversVehiclesAssignedReady": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  }
 }
 

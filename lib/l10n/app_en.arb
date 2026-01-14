@@ -342,6 +342,22 @@
   "deleteDriver": "Delete Driver",
   "areYouSureDeleteDriver": "Are you sure you want to delete this driver?",
   "driverDeletedSuccessfully": "Driver deleted successfully",
+  "inactive": "Inactive",
+  "emailAlreadyRegisteredAsDriver": "This email is already registered as an enterprise driver.",
+  "emailAlreadyRegisteredDifferentRole": "This email is already registered with a different role.",
+  "driverCanNowLoginToSetupAccount": "Driver can now log in with their email to set up their account.",
+  "driverStatusChangedTo": "Driver status changed to {status}",
+  "@driverStatusChangedTo": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingDriverStatus": "Error updating driver status:",
+  "searchDriversBy": "Search drivers by name, phone, CNIC, or license...",
+  "noDriversFoundForSearch": "No drivers found",
+  "tryDifferentSearchTerm": "Try a different search term",
   "color": "Color",
   "add": "Add",
   "delete": "Delete",
@@ -519,6 +535,15 @@
   "fare": "Fare",
   "pleaseEnterFareAmount": "Please enter fare amount",
   "pleaseEnterValidAmount": "Please enter valid amount",
+  "fareCannotBeZero": "Fare cannot be zero",
+  "fareBelowMinimum": "Fare cannot be below the minimum suggested amount of Rs {minimumFare}",
+  "@fareBelowMinimum": {
+    "placeholders": {
+      "minimumFare": {
+        "type": "String"
+      }
+    }
+  },
   "contactsPermissionDenied": "Contacts permission denied",
   "exceedsCapacityNeed": "Exceeds capacity! Need",
   "vehicles": "vehicle(s)",
@@ -632,7 +657,408 @@
       }
     }
   },
-  "pleaseSelectOrEnterLocation": "Please select or enter a location"
+  "pleaseSelectOrEnterLocation": "Please select or enter a location",
+  "notificationPreferences": "Notification Preferences",
+  "notificationPreferencesDesc": "Choose how you want to receive notifications",
+  "emailNotifications": "Email Notifications",
+  "emailNotificationsDesc": "Receive notifications via email",
+  "smsNotifications": "SMS Notifications",
+  "smsNotificationsDesc": "Receive notifications via SMS",
+  "inAppNotifications": "In-App Notifications",
+  "inAppNotificationsDesc": "Receive notifications within the app",
+  "preferencesSaved": "Notification preferences saved successfully",
+  "errorSavingPreferences": "Error saving notification preferences",
+  "errorLoadingPreferences": "Error loading preferences:",
+  
+  "newAssignments": "New Assignments",
+  "noNewAssignments": "No new assignments",
+  "rejected": "Rejected",
+  "from": "From",
+  "to": "To",
+  "vehicle": "Vehicle",
+  "assigned": "Assigned",
+  "assignmentAccepted": "Assignment accepted",
+  "assignmentRejected": "Assignment rejected",
+  "errorRespondingToAssignment": "Error responding to assignment:",
+  "booking": "Booking",
+  "nA": "N/A",
+  "enterpriseDriver": "Enterprise Driver",
+  
+  "setYourPassword": "Set Your Password",
+  "welcomeSetSecurePassword": "Welcome! Please set a secure password for your account.",
+  "pleaseEnterPassword": "Please enter a password",
+  "pleaseConfirmPassword": "Please confirm your password",
+  "enterYourPassword": "Enter your password",
+  "confirmYourPassword": "Confirm your password",
+  "settingUp": "Setting up...",
+  "setPassword": "Set Password",
+  "passwordSetSuccessfully": "Password set successfully!",
+  "failedToSetPassword": "Failed to set password. Please try again.",
+  "passwordTooWeak": "Password is too weak. Please choose a stronger password.",
+  "sessionExpiredSetPassword": "Session expired. Please log out and log in again, then set your password.",
+  "emailMismatch": "Email mismatch. Please log in with the correct account.",
+  
+  "activeTrips": "Active Trips",
+  "noActiveTrips": "No Active Trips",
+  "dispatchedBookingsWillAppearHere": "Dispatched bookings will appear here",
+  "inProgress": "In Progress",
+  "dispatched": "Dispatched",
+  "dispatchedAt": "Dispatched At",
+  "assignedResources": "Assigned Resources",
+  "markAsDelivered": "Mark as Delivered",
+  "areYouSureMarkAsDelivered": "Are you sure this booking has been delivered? The customer will be notified.",
+  "bookingMarkedAsDeliveredSuccessfully": "Booking marked as delivered successfully",
+  "errorMarkingAsDelivered": "Error marking as delivered:",
+  "errorRequestIdNotFound": "Error: Request ID not found",
+  "requestNotFound": "Request not found",
+  "yourCargo": "your cargo",
+  "yourBookingHasBeenDelivered": "Your booking for \"{loadName}\" has been delivered",
+  "@yourBookingHasBeenDelivered": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryCompletedForAssignedBooking": "Delivery completed for assigned booking",
+  "vehicle": "Vehicle",
+  "vehicleNumber": "Vehicle {number}",
+  "@vehicleNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "noBookings": "No Bookings",
+  "acceptedOffersWillAppearHere": "Accepted offers will appear here",
+  "assignedDriver": "Assigned Driver",
+  "assignDriversVehiclesRequired": "Assign Drivers & Vehicles ({quantity} required)",
+  "@assignDriversVehiclesRequired": {
+    "placeholders": {
+      "quantity": {
+        "type": "String"
+      }
+    }
+  },
+  "completeAssignmentRemaining": "Complete Assignment ({remaining} remaining)",
+  "@completeAssignmentRemaining": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "editAssignment": "Edit Assignment",
+  "dispatchBooking": "Dispatch Booking",
+  "editDriverVehicleAssignment": "Edit Driver & Vehicle Assignment",
+  "assignDriversVehicles": "Assign Drivers & Vehicles",
+  "onlyVehiclesOfTypeShown": "Only vehicles of type \"{vehicleType}\" are shown",
+  "@onlyVehiclesOfTypeShown": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "editAssignmentForVehicles": "Edit assignment for {quantity} vehicle{plural}:",
+  "@editAssignmentForVehicles": {
+    "placeholders": {
+      "quantity": {
+        "type": "String"
+      },
+      "plural": {
+        "type": "String"
+      }
+    }
+  },
+  "assignDriversAndVehicles": "Assign {remaining} driver{driverPlural} and vehicle{vehiclePlural}:",
+  "@assignDriversAndVehicles": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      },
+      "driverPlural": {
+        "type": "String"
+      },
+      "vehiclePlural": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseDriver": "Choose a driver",
+  "chooseVehicle": "Choose a vehicle",
+  "pleaseSelectDriverAndVehicleForAllAssignments": "Please select driver and vehicle for all assignments",
+  "updateAssignment": "Update Assignment",
+  "assignAll": "Assign All",
+  "errorLoadingDriversVehicles": "Error loading drivers/vehicles:",
+  "noActiveDriversAvailable": "No active drivers available. Please add active drivers first.",
+  "noActiveVehiclesOfTypeAvailable": "No active vehicles of type \"{vehicleType}\" available. Please add matching active vehicles first.",
+  "@noActiveVehiclesOfTypeAvailable": {
+    "placeholders": {
+      "vehicleType": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveVehiclesAvailable": "No active vehicles available. Please add active vehicles first.",
+  "notEnoughAvailableDrivers": "Not enough available drivers. Need {need}, have {have}.",
+  "@notEnoughAvailableDrivers": {
+    "placeholders": {
+      "need": {
+        "type": "String"
+      },
+      "have": {
+        "type": "String"
+      }
+    }
+  },
+  "notEnoughAvailableVehicles": "Not enough available vehicles. Need {need}, have {have}.",
+  "@notEnoughAvailableVehicles": {
+    "placeholders": {
+      "need": {
+        "type": "String"
+      },
+      "have": {
+        "type": "String"
+      }
+    }
+  },
+  "driversAndVehiclesAssignedSuccessfully": "{count} driver{driverPlural} and vehicle{vehiclePlural} assigned successfully",
+  "@driversAndVehiclesAssignedSuccessfully": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "driverPlural": {
+        "type": "String"
+      },
+      "vehiclePlural": {
+        "type": "String"
+      }
+    }
+  },
+  "errorAssigningDriversVehicles": "Error assigning drivers/vehicles:",
+  "notifyCustomer": "Notify Customer?",
+  "doYouWantToNotifyCustomer": "Do you want to notify the customer that {count} vehicle{vehiclePlural} and driver{driverPlural} have been assigned to their cargo?",
+  "@doYouWantToNotifyCustomer": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "vehiclePlural": {
+        "type": "String"
+      },
+      "driverPlural": {
+        "type": "String"
+      }
+    }
+  },
+  "yesNotify": "Yes, Notify",
+  "vehiclesAndDriversAssignedToCargo": "{count} vehicle{vehiclePlural} and driver{driverPlural} have been assigned to {loadName}",
+  "@vehiclesAndDriversAssignedToCargo": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "vehiclePlural": {
+        "type": "String"
+      },
+      "driverPlural": {
+        "type": "String"
+      },
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "customerHasBeenNotified": "Customer has been notified",
+  "errorSendingNotification": "Error sending notification:",
+  "cannotAssignInactiveDriver": "Cannot assign inactive driver:",
+  "cannotAssignInactiveVehicle": "Cannot assign inactive vehicle:",
+  "pleaseAssignAllVehiclesBeforeDispatching": "Please assign all {quantity} vehicle{plural} before dispatching",
+  "@pleaseAssignAllVehiclesBeforeDispatching": {
+    "placeholders": {
+      "quantity": {
+        "type": "String"
+      },
+      "plural": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseWaitForAllDriversToAccept": "All drivers must accept their assignments before dispatching. ({accepted}/{total} accepted)",
+  "@pleaseWaitForAllDriversToAccept": {
+    "placeholders": {
+      "accepted": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseWaitForAllDriversToStartJourney": "Please wait for all drivers to start their journey before dispatching. ({started}/{accepted} started)",
+  "@pleaseWaitForAllDriversToStartJourney": {
+    "placeholders": {
+      "started": {
+        "type": "String"
+      },
+      "accepted": {
+        "type": "String"
+      }
+    }
+  },
+  "areYouSureDispatchBooking": "Are you sure you want to dispatch this booking? The customer will be notified.",
+  "dispatch": "Dispatch",
+  "bookingDispatchedSuccessfully": "Booking dispatched successfully",
+  "errorDispatchingBooking": "Error dispatching booking:",
+  "yourBookingHasBeenDispatched": "Your booking for \"{loadName}\" has been dispatched and is on its way",
+  "@yourBookingHasBeenDispatched": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "bookingHasBeenDispatched": "Booking has been dispatched",
+  "enterpriseCancelledBooking": "Enterprise cancelled the booking",
+  "errorCancellingBooking": "Error cancelling booking:",
+  "offerType": "Offer Type",
+  "counterOffer": "Counter Offer",
+  "acceptance": "Acceptance",
+  "originalFare": "Original Fare",
+  "acceptedAt": "Accepted At",
+  "plate": "Plate",
+  "totalEarnings": "Total Earnings",
+  "average": "Average",
+  "noEarningsYet": "No earnings yet",
+  "earningsWillAppearHere": "Your earnings will appear here after completing bookings",
+  "earningsHistory": "Earnings History",
+  "earnings": "Earnings",
+  "completed": "Completed",
+  "newCustomerRequestsWillAppearHere": "New customer requests will appear here",
+  "counterOfferLabel": "Counter offer:",
+  "audioNote": "Audio Note",
+  "audioNoteOptional": "Audio Note (Optional)",
+  "recordAudioNote": "Record Audio Note",
+  "stopRecording": "Stop Recording",
+  "failedToStartRecording": "Failed to start recording. Please check microphone permissions.",
+  "uploadingAudioNote": "Uploading audio note...",
+  "audioNoteUploadedSuccessfully": "Audio note uploaded successfully!",
+  "errorUploadingAudio": "Error uploading audio: {error}",
+  "@errorUploadingAudio": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "upload": "Upload",
+  "audioNoteAttached": "Audio note attached",
+  "remove": "Remove",
+  "tapToPlayCustomerAudioNote": "Tap to play customer audio note",
+  "pause": "Pause",
+  "play": "Play",
+  "errorPlayingAudio": "Error playing audio: {error}",
+  "@errorPlayingAudio": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noCompletedBookingsYet": "No completed bookings yet",
+  "completedBookingHistoryWillAppearHere": "Your completed booking history will appear here",
+  "delivered": "Delivered",
+  "customerId": "Customer ID",
+  "deliveredAt": "Delivered At",
+  "enterpriseProfileAndSettingsWillAppearHere": "Enterprise profile and settings will appear here",
+  "loading": "Loading...",
+  "noVehiclesFoundForSearch": "No vehicles found",
+  "searchVehiclesBy": "Search vehicles by make, registration, type, or color...",
+  "vehicleStatusChangedTo": "Vehicle status changed to {status}",
+  "@vehicleStatusChangedTo": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "errorUpdatingVehicleStatus": "Error updating vehicle status:",
+  "driverCancelledRequest": "Driver cancelled the request",
+  "driverHasStartedJourney": "Driver has started the journey",
+  "trips": "Trips",
+  "revenue": "Revenue",
+  "commission": "Commission",
+  "loadingEarnings": "Loading earnings...",
+  "earningsWillAppearAfterTrips": "Your earnings will appear here after completing trips",
+  "trip": "Trip",
+  "customerPhoneNumberNotAvailable": "Customer phone number not available",
+  "errorCallingCustomer": "Error calling customer:",
+  "noActiveTrip": "No active trip",
+  "startJourneyFromUpcomingTrips": "Start a journey from Upcoming Trips",
+  "journeyInProgress": "Journey In Progress",
+  "started": "Started:",
+  "senderPhone": "Sender Phone",
+  "receiverPhone": "Receiver Phone",
+  "viewDirectionsOnMap": "View Directions on Map",
+  "yourCargoHasBeenDeliveredSuccessfully": "Your cargo has been delivered successfully",
+  "pleaseWaitForAllDriversToCompleteJourney": "Please wait for all drivers to complete their journey before marking as delivered.",
+  "allDriversHaveCompletedJourney": "All drivers have completed the journey",
+  "statusAccepted": "Accepted",
+  "statusDispatched": "Dispatched",
+  "statusInProgress": "In Progress",
+  "contactEnterprise": "Enterprise",
+  "pickupLabel": "Pickup",
+  "fareLabel": "Fare",
+  "enterpriseContactNotAvailable": "Enterprise contact number not available",
+  "errorContactingEnterprise": "Error contacting enterprise",
+  "errorCancellingRequest": "Error cancelling request",
+  "notification": "Notification",
+  "driverDetails": "Driver Details",
+  "plateNumber": "Plate Number",
+  "destination": "Destination",
+  "allDriversStartedCanMarkDispatched": "All drivers have started journey for {loadName}. You can now mark it as dispatched.",
+  "@allDriversStartedCanMarkDispatched": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "cargoInTransit": "Your cargo is now in transit",
+  "driverAcceptedAssignment": "{driverName} accepted assignment for {loadName}",
+  "@driverAcceptedAssignment": {
+    "placeholders": {
+      "driverName": {
+        "type": "String"
+      },
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "driverRejectedAssignment": "{driverName} rejected assignment for {loadName}",
+  "@driverRejectedAssignment": {
+    "placeholders": {
+      "driverName": {
+        "type": "String"
+      },
+      "loadName": {
+        "type": "String"
+      }
+    }
+  },
+  "allDriversVehiclesAssignedReady": "All drivers and vehicles have been assigned and accepted for {loadName}. Your booking is ready!",
+  "@allDriversVehiclesAssignedReady": {
+    "placeholders": {
+      "loadName": {
+        "type": "String"
+      }
+    }
+  }
 }
 
 

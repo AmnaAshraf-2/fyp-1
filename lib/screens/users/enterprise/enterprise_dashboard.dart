@@ -346,7 +346,7 @@ class _EnterpriseDashboardState extends State<EnterpriseDashboard> {
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.directions_car),
-              label: 'Active Trips',
+              label: t.activeTrips,
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.notifications_active),

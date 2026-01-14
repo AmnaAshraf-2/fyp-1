@@ -20,7 +20,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   bool _isLoading = true;
   bool _mapLoaded = false;
   String? _errorMessage;
-  LatLng _currentPosition = const LatLng(33.6844, 73.0479); // Default to Islamabad
+  LatLng _currentPosition = const LatLng(31.5204, 74.3587); // Default to Lahore
 
   @override
   void initState() {
@@ -33,75 +33,23 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
   Future<void> _getCurrentLocation() async {
     try {
-      // On web, location services might not be available
-      // Just set a default location and continue
-      if (kIsWeb) {
-        if (kDebugMode) {
-          print('🌐 Running on web, using default location');
-        }
-        setState(() {
-          _currentPosition = const LatLng(33.6844, 73.0479); // Islamabad
-          _selectedLocation = _currentPosition;
-          _isLoading = false;
-        });
-        _getAddressForLocation(_currentPosition);
-        return;
-      }
-
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (kDebugMode) {
-          print('⚠️ Location services are disabled');
-        }
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (kDebugMode) {
-            print('⚠️ Location permissions are denied');
-          }
-          setState(() {
-            _isLoading = false;
-          });
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        if (kDebugMode) {
-          print('⚠️ Location permissions are permanently denied');
-        }
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
+      // Always use Lahore, Pakistan as the default location
+      // This ensures the map always opens to Lahore regardless of user's actual location
       if (kDebugMode) {
-        print('📍 Current location: ${position.latitude}, ${position.longitude}');
+        print('🗺️ Using default location: Lahore, Pakistan (31.5204, 74.3587)');
       }
-
+      
       setState(() {
-        _currentPosition = LatLng(position.latitude, position.longitude);
+        _currentPosition = const LatLng(31.5204, 74.3587); // Lahore, Pakistan
         _selectedLocation = _currentPosition;
         _isLoading = false;
       });
-
-      // Get address for current location
+      
+      // Get address for default location
       _getAddressForLocation(_currentPosition);
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error getting current location: $e');
+        print('❌ Error setting default location: $e');
       }
       setState(() {
         _isLoading = false;

@@ -100,11 +100,11 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
     try {
       await _db.child('customer_notifications/${_auth.currentUser!.uid}').remove();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All notifications cleared')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.allNotificationsCleared)),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error clearing notifications: $e')),
+        SnackBar(content: Text('${AppLocalizations.of(context)!.errorClearingNotifications}: $e')),
       );
     }
   }
@@ -150,7 +150,7 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Notifications', style: TextStyle(color: Color(0xFF004d4d))),
+        title: Text(t.notifications, style: const TextStyle(color: Color(0xFF004d4d))),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF004d4d)),
@@ -176,7 +176,7 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No notifications',
+                        t.noNotifications,
                         style: const TextStyle(
                           fontSize: 18,
                           color: Color(0xFF004d4d),
@@ -228,7 +228,7 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
               ),
             ),
             title: Text(
-              notification['message'] ?? 'Notification',
+              notification['message'] ?? t.notification,
               style: TextStyle(
                 fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
                 color: const Color(0xFF004d4d),
@@ -236,7 +236,7 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
               ),
             ),
             subtitle: Text(
-              _formatTimestamp(notification['timestamp']),
+              _formatTimestamp(notification['timestamp'], t),
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontSize: 12,
@@ -270,7 +270,7 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
                           Icon(Icons.local_shipping, color: Colors.teal.shade700, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'Cargo Details',
+                            t.cargoDetails,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -280,23 +280,24 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildDetailRow('Load Name', requestData['loadName'] ?? 'N/A'),
-                      _buildDetailRow('Load Type', requestData['loadType'] ?? 'N/A'),
+                      _buildDetailRow(t.loadName, requestData['loadName'] ?? t.nA, t),
+                      _buildDetailRow(t.loadType, requestData['loadType'] ?? t.nA, t),
                       _buildDetailRow(
-                        'Weight',
-                        '${requestData['weight'] ?? 'N/A'} ${requestData['weightUnit'] ?? ''}',
+                        t.loadWeight,
+                        '${requestData['weight'] ?? t.nA} ${requestData['weightUnit'] ?? ''}',
+                        t,
                       ),
-                      _buildDetailRow('Vehicle Type', requestData['vehicleType'] ?? 'N/A'),
-                      _buildDetailRow('Quantity', '${requestData['quantity'] ?? 'N/A'}'),
+                      _buildDetailRow(t.vehicleType, requestData['vehicleType'] ?? t.nA, t),
+                      _buildDetailRow(t.quantity, '${requestData['quantity'] ?? t.nA}', t),
                       if (requestData['pickupLocation'] != null && requestData['pickupLocation'] != 'N/A')
-                        _buildDetailRow('Pickup', requestData['pickupLocation']),
+                        _buildDetailRow(t.pickupLocation, requestData['pickupLocation'], t),
                       if (requestData['destinationLocation'] != null && requestData['destinationLocation'] != 'N/A')
-                        _buildDetailRow('Destination', requestData['destinationLocation']),
+                        _buildDetailRow(t.destination, requestData['destinationLocation'], t),
                       if (requestData['pickupDate'] != null && requestData['pickupDate'] != 'N/A')
-                        _buildDetailRow('Pickup Date', requestData['pickupDate']),
+                        _buildDetailRow(t.pickupDate, requestData['pickupDate'], t),
                       if (requestData['pickupTime'] != null && requestData['pickupTime'] != 'N/A')
-                        _buildDetailRow('Pickup Time', requestData['pickupTime']),
-                      _buildDetailRow('Fare', 'Rs. ${requestData['offerFare'] ?? requestData['finalFare'] ?? 'N/A'}'),
+                        _buildDetailRow(t.pickupTime, requestData['pickupTime'], t),
+                      _buildDetailRow(t.fareLabel, 'Rs. ${requestData['offerFare'] ?? requestData['finalFare'] ?? t.nA}', t),
                     ],
                   ),
                 ),
@@ -319,7 +320,7 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            enterpriseData != null ? 'Enterprise Details' : 'Driver Details',
+                            enterpriseData != null ? t.enterpriseDetails : t.driverDetails,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -330,8 +331,8 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
                       ),
                       const SizedBox(height: 12),
                       if (driverData != null) ...[
-                        _buildDetailRow('Name', driverData['name'] ?? driverData['fullName'] ?? 'N/A'),
-                        _buildDetailRow('Phone', driverData['phone'] ?? driverData['phoneNumber'] ?? 'N/A'),
+                        _buildDetailRow(t.customerName, driverData['name'] ?? driverData['fullName'] ?? t.nA, t),
+                        _buildDetailRow(t.phoneNumber, driverData['phone'] ?? driverData['phoneNumber'] ?? t.nA, t),
                         if (driverData['vehicleInfo'] != null) ...[
                           Builder(
                             builder: (context) {
@@ -340,9 +341,9 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildDetailRow('Vehicle', vehicleInfo['type'] ?? 'N/A'),
+                                    _buildDetailRow(t.vehicle, vehicleInfo['type'] ?? t.nA, t),
                                     if (vehicleInfo['plateNumber'] != null)
-                                      _buildDetailRow('Plate Number', vehicleInfo['plateNumber']),
+                                      _buildDetailRow(t.plateNumber, vehicleInfo['plateNumber'], t),
                                   ],
                                 );
                               }
@@ -352,10 +353,10 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
                         ],
                       ],
                       if (enterpriseData != null) ...[
-                        _buildDetailRow('Name', enterpriseData['name'] ?? enterpriseData['enterpriseName'] ?? 'N/A'),
-                        _buildDetailRow('Phone', enterpriseData['phone'] ?? enterpriseData['phoneNumber'] ?? 'N/A'),
+                        _buildDetailRow(t.customerName, enterpriseData['name'] ?? enterpriseData['enterpriseName'] ?? t.nA, t),
+                        _buildDetailRow(t.phoneNumber, enterpriseData['phone'] ?? enterpriseData['phoneNumber'] ?? t.nA, t),
                         if (enterpriseData['email'] != null)
-                          _buildDetailRow('Email', enterpriseData['email']),
+                          _buildDetailRow(t.email, enterpriseData['email'], t),
                       ],
                     ],
                   ),
@@ -364,43 +365,43 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
               ],
               
               // Action Button
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.visibility),
-                    label: Text(
-                      notification['type'] == 'offer_accepted' || 
-                      notification['type'] == 'journey_started' || 
-                      notification['type'] == 'journey_completed'
-                          ? 'View Booking'
-                          : 'View Details',
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal.shade800,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: () {
-                      final type = notification['type'];
-                      if (type == 'offer_accepted' || type == 'journey_started' || type == 'journey_completed') {
-                        if (requestId != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const UpcomingBookingsScreen(),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                ),
-              ),
+              // Padding(
+              //   padding: const EdgeInsets.all(16),
+              //   child: SizedBox(
+              //     width: double.infinity,
+              //     child: ElevatedButton.icon(
+              //       icon: const Icon(Icons.visibility),
+              //       label: Text(
+              //         notification['type'] == 'offer_accepted' || 
+              //         notification['type'] == 'journey_started' || 
+              //         notification['type'] == 'journey_completed'
+              //             ? 'View Booking'
+              //             : 'View Details',
+              //       ),
+              //       style: ElevatedButton.styleFrom(
+              //         backgroundColor: Colors.teal.shade800,
+              //         foregroundColor: Colors.white,
+              //         padding: const EdgeInsets.symmetric(vertical: 12),
+              //         shape: RoundedRectangleBorder(
+              //           borderRadius: BorderRadius.circular(8),
+              //         ),
+              //       ),
+              //       onPressed: () {
+              //         final type = notification['type'];
+              //         if (type == 'offer_accepted' || type == 'journey_started' || type == 'journey_completed') {
+              //           if (requestId != null) {
+              //             Navigator.push(
+              //               context,
+              //               MaterialPageRoute(
+              //                 builder: (context) => const UpcomingBookingsScreen(),
+              //               ),
+              //             );
+              //           }
+              //         }
+              //       },
+              //     ),
+              //   ),
+              // ),
             ],
           );
         },
@@ -447,7 +448,7 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
     }
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value, AppLocalizations t) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -479,21 +480,21 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
     );
   }
 
-  String _formatTimestamp(int? timestamp) {
-    if (timestamp == null) return 'Unknown time';
+  String _formatTimestamp(int? timestamp, AppLocalizations t) {
+    if (timestamp == null) return t.unknownTime;
     
     final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
     final difference = now.difference(dateTime);
     
     if (difference.inDays > 0) {
-      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+      return '${difference.inDays} ${difference.inDays == 1 ? t.dayAgo : t.daysAgo}';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+      return '${difference.inHours} ${difference.inHours == 1 ? t.hourAgo : t.hoursAgo}';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+      return '${difference.inMinutes} ${difference.inMinutes == 1 ? t.minuteAgo : t.minutesAgo}';
     } else {
-      return 'Just now';
+      return t.justNow;
     }
   }
 }
