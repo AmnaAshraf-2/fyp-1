@@ -38,7 +38,6 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   email_validator: ^3.0.0
-  intl_phone_field: ^3.2.0
   firebase_auth: ^5.5.1
   firebase_core: ^3.12.1
   firebase_database: ^11.3.4
@@ -49,12 +48,25 @@ dependencies:
   flutter_localization: ^0.3.2
   provider: ^6.1.4
   intl:
+  google_sign_in:
+  country_picker:
+  intl_phone_field:
+  google_maps_flutter:
+  geocoding:
+  flutter_polyline_points:
+  permission_handler:
+  image_picker: ^0.8.4
+  file_picker: ^10.3.3
+  cloud_firestore: ^5.4.0
   flutter_localizations:
     sdk: flutter
+  flutter_contacts: ^1.1.9+2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  mockito: ^5.4.6
+  build_runner: ^2.4.14
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -76,8 +88,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
+  assets:
+    - assets/images/
   #   - images/a_dot_ham.jpeg
 
 

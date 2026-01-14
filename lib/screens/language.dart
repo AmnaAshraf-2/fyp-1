@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:logistics_app/main.dart';
 import 'package:logistics_app/screens/role.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class LanguageSettingsScreen extends StatefulWidget {
   const LanguageSettingsScreen({super.key});
@@ -43,68 +41,145 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     if (_selectedLanguageCode != null) {
       await _saveLanguage(_selectedLanguageCode!);
       Locale newLocale = Locale(_selectedLanguageCode!);
-      // Rebuild app with new locale
       MyApp.setLocale(context, newLocale);
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => RoleScreen()));
+        context,
+        MaterialPageRoute(builder: (_) => const RoleScreen()),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-          title: Center(
-        child: Text(
-          "Choose Language",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-      )),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CheckboxListTile(
-                      title: const Text("English"),
-                      value: _selectedLanguageCode == 'en',
-                      onChanged: (_) => _onLanguageSelected('en'),
-                    ),
-                    CheckboxListTile(
-                      title: const Text("اردو"),
-                      value: _selectedLanguageCode == 'ur',
-                      onChanged: (_) => _onLanguageSelected('ur'),
-                    ),
-                    CheckboxListTile(
-                      title: const Text("پښتو"),
-                      value: _selectedLanguageCode == 'ps',
-                      onChanged: (_) => _onLanguageSelected('ps'),
-                    ),
-                  ],
-                ),
+      backgroundColor: const Color(0xFFFFF9E6),
+      body: Stack(
+        children: [
+          // Background circles
+          Positioned(
+            top: -80,
+            left: -80,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.orangeAccent.withOpacity(0.2),
+                shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _proceed,
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
+          ),
+          Positioned(
+            bottom: -100,
+            right: -100,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                color: Colors.orange.shade100.withOpacity(0.3),
+                shape: BoxShape.circle,
               ),
-              child: const Text("Proceed"),
             ),
-          ],
+          ),
+          Positioned(
+            top: 150,
+            right: -80,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: Colors.yellow.shade200.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Logistics Guru",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    "Choose Language",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Card(
+                    elevation: 10,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(25),
+                      child: Column(
+                        children: [
+                          _buildLanguageTile('English', 'en'),
+                          const Divider(height: 30, color: Colors.grey),
+                          _buildLanguageTile('اردو', 'ur'),
+                          const Divider(height: 30, color: Colors.grey),
+                          _buildLanguageTile('پښتو', 'ps'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed: _proceed,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 15, horizontal: 40),
+                      backgroundColor: Colors.orange.shade700,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'PROCEED',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageTile(String language, String code) {
+    return ListTile(
+      title: Text(
+        language,
+        style: TextStyle(
+          fontSize: 18,
+          color: Colors.grey.shade800,
         ),
+      ),
+      leading: Radio<String>(
+        value: code,
+        groupValue: _selectedLanguageCode,
+        activeColor: Colors.orange.shade700,
+        onChanged: (value) => _onLanguageSelected(value!),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
       ),
     );
   }

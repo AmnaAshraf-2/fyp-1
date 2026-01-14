@@ -2,5 +2,11 @@
   "chooseRole": "اپنا کردار منتخب کریں",
   "customer": "صارف",
   "driver": "ڈرائیور",
-  "enterprise": "ادارہ"
+  "enterprise": "ادارہ",
+  "dashboardTitle": "کسٹمر ڈیش بورڈ",
+  "newBookings": "نئی بکنگز",
+  "liveTrip": "چالو سفر",
+  "upcomingBookings": "آنے والی بکنگز",
+  "pastBookings": "گزشتہ بکنگز",
+"select":"select"
 }

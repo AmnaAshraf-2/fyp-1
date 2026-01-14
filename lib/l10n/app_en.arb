@@ -1,11 +1,15 @@
 {
-  "title": "Welcome",
-  "language_settings": "Language Settings",
-  "choose_language": "Choose your language",
-  "save": "Save",
+  "select":"Select",
   "chooseRole": "Choose your role",
   "customer": "Customer",
   "driver": "Driver",
-  "enterprise": "Enterprise"
+  "enterprise": "Enterprise",
+  "dashboardTitle": "Customer Dashboard",
+  "newBookings": "New Bookings",
+  "liveTrip": "Live Trip",
+  "upcomingBookings": "Upcoming Bookings",
+  "pastBookings": "Past Bookings"
+
+
 }
 
